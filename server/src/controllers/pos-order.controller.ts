@@ -86,7 +86,7 @@ export const posOrderController = {
 
       // Tính tổng tiền và chuẩn bị danh sách item
       let totalAmount = 0;
-      const orderItemsData = [];
+      const orderItemsData: { productId: string; productName: string; unitPrice: number; quantity: number; notes: string | null }[] = [];
 
       for (const item of items) {
         const product = productMap.get(item.productId);
@@ -182,7 +182,7 @@ export const posOrderController = {
 
       // Tính tổng tiền và chuẩn bị danh sách item mới
       let totalAmount = 0;
-      const orderItemsData = [];
+      const orderItemsData: { productId: string; productName: string; unitPrice: number; quantity: number; notes: string | null }[] = [];
 
       for (const item of items) {
         const product = productMap.get(item.productId);
