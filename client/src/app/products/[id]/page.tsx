@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
               {product.brand ?? product.category?.name ?? "Sản phẩm"}
             </span>
 
-            <h1 className="text-2xl md:text-4xl font-headline font-bold text-on-surface mt-1">
+            <h1 className="text-xl md:text-4xl font-headline font-bold text-on-surface mt-1">
               {product.name}
             </h1>
           </div>
@@ -152,7 +152,7 @@ export default function ProductDetailPage() {
              </span>
           </div>
 
-          <p className="text-sm md:text-lg leading-relaxed text-on-surface-variant">
+          <p className="hidden md:block text-sm md:text-lg leading-relaxed text-on-surface-variant">
             {product.description ?? "Chưa có mô tả cho sản phẩm này."}
           </p>
 
@@ -249,6 +249,17 @@ export default function ProductDetailPage() {
                  </div>
               </div>
             </div>
+          </div>
+
+          {/* Mobile Description Block */}
+          <div className="md:hidden mt-6 bg-surface-container-lowest rounded-xl p-6 organic-shadow border border-stone-100 space-y-3">
+            <h3 className="font-bold text-primary text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">description</span>
+              Mô tả sản phẩm
+            </h3>
+            <p className="text-xs leading-relaxed text-on-surface-variant">
+              {product.description ?? "Chưa có mô tả cho sản phẩm này."}
+            </p>
           </div>
         </div>
       </div>

@@ -8,8 +8,16 @@ declare global {
       role: Role;
     }
 
+    interface PosUser {
+      id: string;
+      username: string;
+      role: Role;
+      fullName: string;
+    }
+
     interface Request {
       user?: User;
+      posUser?: PosUser;
     }
   }
 }

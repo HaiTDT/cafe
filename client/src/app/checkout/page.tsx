@@ -99,14 +99,14 @@ function CheckoutContent() {
 
   return (
     <>
-      <section className="w-full bg-primary-fixed/30 py-12 px-8">
+      <section className="w-full bg-primary-fixed/30 py-6 md:py-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight">Thanh toán</h1>
           <p className="mt-2 text-on-surface-variant font-body">Hoàn tất thông tin để đặt hàng</p>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-16">
+      <section className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-16">
         <ErrorMessage message={error} />
         {success && (
           <div className="mb-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800 organic-shadow">
@@ -122,7 +122,7 @@ function CheckoutContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8">
-            <div className="bg-surface-container-lowest rounded-xl p-8 organic-shadow border border-outline-variant/30">
+            <div className="bg-surface-container-lowest rounded-xl p-4 md:p-8 organic-shadow border border-outline-variant/30">
               <form className="space-y-8" onSubmit={submit}>
                 <div>
                   <h3 className="text-xl font-headline font-bold text-on-surface mb-6 flex items-center gap-3">
@@ -248,7 +248,7 @@ function CheckoutContent() {
           </div>
 
           <div className="lg:col-span-4">
-            <aside className="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/30 sticky top-28 organic-shadow">
+            <aside className="bg-surface-container-lowest rounded-xl p-4 md:p-8 border border-outline-variant/30 sticky top-28 organic-shadow">
               <h2 className="text-xl font-headline font-bold text-on-surface mb-6">Tóm tắt đơn hàng</h2>
               
               {!cart || cart.items.length === 0 ? (

@@ -9,6 +9,10 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   @apply bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed;

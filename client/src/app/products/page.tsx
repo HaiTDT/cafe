@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProductCard } from "../../components/ProductCard";
-import { Sidebar } from "../../components/store/Sidebar";
 import { ErrorMessage } from "../../components/ui";
 import { api, type Category, type Product } from "../../lib/api";
-import { CATEGORY_GROUPS } from "../../lib/constants";
 import styles from "../../components/store/StoreLayout.module.css";
 
 type Filters = {
@@ -30,19 +28,16 @@ export default function ProductsPage() {
 
 function ProductsContent() {
   const searchParams = useSearchParams();
-  const groupKey = searchParams.get("group") ?? "";
   const initialSearch = searchParams.get("search") ?? "";
+  const initialCategoryId = searchParams.get("categoryId") ?? "";
   const initialFlashSale = searchParams.get("flashSale") === "true";
-
-  // Lấy cấu hình nhóm hiện tại
-  const activeGroup = CATEGORY_GROUPS.find(g => g.key === groupKey) ?? null;
 
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [filters, setFilters] = useState<Filters>({
     search: initialSearch,
-    categoryId: "",
+    categoryId: initialCategoryId,
     brand: "",
     minPrice: "",
     maxPrice: "",
@@ -53,50 +48,28 @@ function ProductsContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Danh mục con hiển thị trong sidebar: chỉ các danh mục thuộc nhóm đang chọn
-  const visibleCategories = useMemo(() => {
-    if (!activeGroup) return allCategories;
-    const slugSet = new Set<string>(activeGroup.categorySlugs);
-    return allCategories.filter(c => slugSet.has(c.slug));
-  }, [allCategories, activeGroup]);
-
-  // Top brands của nhóm đang chọn
-  const topBrands: string[] = activeGroup ? [...activeGroup.topBrands] : [];
-
-  // categoryIds để gọi API khi chưa chọn danh mục nhỏ cụ thể
-  const groupCategoryIds = useMemo(() => {
-    if (!activeGroup || filters.categoryId) return "";
-    const slugSet = new Set<string>(activeGroup.categorySlugs);
-    const ids = allCategories.filter(c => slugSet.has(c.slug)).map(c => c.id);
-    return ids.join(",");
-  }, [activeGroup, allCategories, filters.categoryId]);
-
   const queryParams = useMemo(
     () => ({
       ...filters,
-      categoryIds: groupCategoryIds || undefined,
       limit: 9
     } as Record<string, string | number | boolean | undefined>),
-    [filters, groupCategoryIds]
+    [filters]
   );
 
   useEffect(() => {
     api.getCategories().then(setAllCategories).catch(() => setAllCategories([]));
   }, []);
 
-  // Reset filters khi group hoặc search thay đổi
+  // Reset filters khi categoryId hoặc search thay đổi
   useEffect(() => {
-    setFilters({
+    setFilters((current) => ({
+      ...current,
       search: initialSearch,
-      categoryId: "",
-      brand: "",
-      minPrice: "",
-      maxPrice: "",
-      sort: "",
-      page: 1,
-      isFlashSale: initialFlashSale || undefined
-    });
-  }, [groupKey, initialSearch, initialFlashSale]);
+      categoryId: initialCategoryId,
+      isFlashSale: initialFlashSale || undefined,
+      page: 1
+    }));
+  }, [initialSearch, initialCategoryId, initialFlashSale]);
 
 
 
@@ -148,42 +121,32 @@ function ProductsContent() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-6 py-12">
-        <div className="relative flex flex-col items-center overflow-hidden rounded-xl bg-surface-container-low p-12 text-center md:p-20">
+      <section className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-12">
+        <div className="relative flex flex-col items-center overflow-hidden rounded-xl bg-surface-container-low p-6 text-center md:p-20">
           <h1 className="font-headline mb-4 text-4xl font-extrabold tracking-tight text-primary md:text-5xl">
             {filters.isFlashSale
               ? "🔥 Khuyến Mãi Flash Sale"
-              : activeGroup
-              ? activeGroup.label
+              : filters.categoryId
+              ? allCategories.find(c => c.id === filters.categoryId)?.name || "Danh mục"
               : "Tất cả sản phẩm"}
           </h1>
           <p className="max-w-2xl leading-relaxed text-on-surface-variant">
             {filters.isFlashSale
               ? "Ưu đãi có hạn – Nhanh tay kẻo lỡ!"
-              : activeGroup
-              ? `Khám phá bộ sưu tập ${activeGroup.label} tại Hasaki`
-              : "Khám phá các sản phẩm chăm sóc da và làm đẹp cao cấp"}
+              : filters.categoryId
+              ? `Khám phá bộ sưu tập ${allCategories.find(c => c.id === filters.categoryId)?.name || "của chúng tôi"}`
+              : "Khám phá các sản phẩm cà phê, đồ uống và bánh ngọt cao cấp"}
           </p>
         </div>
       </section>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pb-24 md:flex-row">
-        <Sidebar
-          brand={filters.brand}
-          categories={visibleCategories}
-          categoryId={filters.categoryId}
-          maxPrice={filters.maxPrice}
-          minPrice={filters.minPrice}
-          onChange={updateFilters}
-          topBrands={topBrands}
-        />
-
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pb-24">
         <section className="flex-1">
           <div className="mb-8 grid gap-3 rounded-xl bg-surface-container-lowest p-4 shadow-sm sm:grid-cols-[1fr_180px_140px]">
             <input
               className="rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm focus:ring-primary text-on-surface"
               onChange={(event) => updateFilters({ search: event.target.value })}
-              placeholder="Tìm serum, kem dưỡng, toner..."
+              placeholder="Tìm cà phê, trà sữa, bánh ngọt..."
               value={filters.search}
             />
             <select
@@ -225,9 +188,9 @@ function ProductsContent() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((item) => (
-                <div className="h-[350px] animate-pulse rounded-xl bg-surface-container-low" key={item} />
+                <div className="h-[250px] sm:h-[350px] animate-pulse rounded-xl bg-surface-container-low" key={item} />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -235,7 +198,7 @@ function ProductsContent() {
               Không tìm thấy sản phẩm phù hợp.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

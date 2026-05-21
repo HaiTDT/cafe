@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="material-symbols-outlined text-white text-2xl">eco</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight leading-none">Atelier Admin</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight leading-none">Hậu Lê Coffee</h1>
               <p className="text-white/60 text-[10px] uppercase tracking-widest mt-1">Hệ thống quản trị</p>
             </div>
           </div>
@@ -33,6 +33,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <span className="material-symbols-outlined">dashboard</span>
               <span>Tổng quan</span>
+            </Link>
+            <Link 
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg mx-2 my-1 transition-all duration-200 ${isActive('/admin/banners') ? 'bg-white/10 text-white font-semibold' : 'text-white/70 hover:text-white hover:bg-white/5'}`} 
+              href="/admin/banners"
+            >
+              <span className="material-symbols-outlined">view_carousel</span>
+              <span>Quản lý Banner</span>
             </Link>
             <Link 
               className={`flex items-center gap-3 px-4 py-3 rounded-lg mx-2 my-1 transition-all duration-200 ${isActive('/admin/products') ? 'bg-white/10 text-white font-semibold' : 'text-white/70 hover:text-white hover:bg-white/5'}`} 

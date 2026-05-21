@@ -5,9 +5,9 @@ export function Footer() {
     <footer className="bg-gray-100 dark:bg-stone-950 w-full pt-12 md:pt-16 pb-8 border-none mt-auto">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 max-w-7xl mx-auto px-6 md:px-8 mb-12 md:mb-16">
         <div className="col-span-1 text-center md:text-left">
-          <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-50 mb-4 md:mb-6">HASAKI</div>
+          <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-50 mb-4 md:mb-6">HẬU LÊ COFFEE</div>
           <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-6 max-w-sm mx-auto md:mx-0">
-            Vẻ đẹp bắt nguồn từ sự thấu hiểu thiên nhiên và khoa học làn da.
+            Khởi đầu ngày mới tràn đầy năng lượng cùng ly cà phê đậm đà.
           </p>
           <div className="flex justify-center md:justify-start gap-4">
             <a className="w-10 h-10 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
@@ -24,7 +24,7 @@ export function Footer() {
           <h4 className="font-bold text-emerald-900 dark:text-emerald-400 mb-4 md:mb-6 uppercase tracking-wider text-xs">Về chúng tôi</h4>
           <ul className="space-y-3">
             <li><Link className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm font-semibold" href="/">Trang chủ</Link></li>
-            <li><Link className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm" href="/blogs">Góc làm đẹp</Link></li>
+            <li><Link className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm" href="/blogs">Tin tức & Câu chuyện</Link></li>
             <li><a className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm" href="#">Câu chuyện thương hiệu</a></li>
             <li><a className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm" href="#">Hệ thống cửa hàng</a></li>
             <li><a className="text-stone-500 dark:text-stone-400 hover:text-emerald-700 transition-colors inline-block text-sm" href="#">Liên hệ</a></li>
@@ -53,7 +53,7 @@ export function Footer() {
       </div>
       <div
         className="max-w-7xl mx-auto px-6 md:px-8 pt-8 border-t border-stone-200 dark:border-stone-800 flex flex-col md:flex-row justify-between items-center gap-6">
-        <p className="text-stone-500 dark:text-stone-400 text-[11px] md:text-sm text-center md:text-left">© 2026 Hasaki. Tất cả quyền được bảo lưu.</p>
+        <p className="text-stone-500 dark:text-stone-400 text-[11px] md:text-sm text-center md:text-left">© 2026 Hậu Lê Coffee. Tất cả quyền được bảo lưu.</p>
         <div className="flex gap-4 md:gap-6 items-center opacity-60">
           <img alt="Visa" className="h-3 md:h-4 grayscale" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" />
           <img alt="Mastercard" className="h-5 md:h-6 grayscale" src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" />

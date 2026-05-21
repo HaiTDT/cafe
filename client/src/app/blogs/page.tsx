@@ -25,7 +25,7 @@ export default function BlogsPage() {
   return (
     <main className="min-h-screen bg-surface-container-lowest pb-24">
       {/* Hero Section */}
-      <section className="relative h-[40vh] min-h-[300px] w-full overflow-hidden mb-16">
+      <section className="relative h-[25vh] md:h-[40vh] min-h-[220px] md:min-h-[300px] w-full overflow-hidden mb-8 md:mb-16">
         <img 
           src="https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=1600" 
           alt="Beauty Blog"
@@ -34,13 +34,13 @@ export default function BlogsPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/40 to-transparent flex items-center">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl">
-              <span className="inline-block px-3 py-1 bg-secondary text-on-secondary text-[10px] md:text-xs font-bold tracking-widest uppercase mb-4 rounded-sm">
+              <span className="inline-block px-3 py-1 bg-secondary text-on-secondary text-[10px] md:text-xs font-bold tracking-widest uppercase mb-2 md:mb-4 rounded-sm">
                 KẾT NỐI & CHIA SẺ
               </span>
-              <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-                Góc Làm Đẹp <br /><span className="italic font-light text-secondary-fixed">Hasaki Beauty</span>
+              <h1 className="font-headline text-2xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-3 md:mb-6">
+                Góc Làm Đẹp <br /><span className="italic font-light text-secondary-fixed">Hậu Lê Coffee Beauty</span>
               </h1>
-              <p className="text-white/80 text-sm md:text-lg max-w-md leading-relaxed">
+              <p className="hidden sm:block text-white/80 text-sm md:text-lg max-w-md leading-relaxed">
                 Nơi cập nhật những xu hướng làm đẹp mới nhất, bí quyết chăm sóc da từ chuyên gia và đánh giá sản phẩm khách quan.
               </p>
             </div>
@@ -50,7 +50,7 @@ export default function BlogsPage() {
 
       <div className="container mx-auto px-4">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-6 md:mb-12 gap-6 md:gap-8">
           <div>
             <nav className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">
               <Link href="/" className="hover:text-primary transition-colors">Trang chủ</Link>

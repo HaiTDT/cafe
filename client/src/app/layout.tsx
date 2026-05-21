@@ -7,8 +7,8 @@ import Chatbot from "../components/Chatbot";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hasaki",
-  description: "Hasaki - Hệ thống mỹ phẩm & chăm sóc sắc đẹp chính hãng"
+  title: "Hậu Lê Coffee",
+  description: "Hậu Lê Coffee - Hệ thống mỹ phẩm & chăm sóc sắc đẹp chính hãng"
 };
 
 export default function RootLayout({

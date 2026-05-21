@@ -1,7 +1,16 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-export type Role = "CUSTOMER" | "ADMIN";
+export type Role = "CUSTOMER" | "ADMIN" | "STAFF";
+
+export interface Banner {
+  id: string;
+  title: string | null;
+  imageUrl: string;
+  link: string | null;
+  isActive: boolean;
+  order: number;
+}
 
 export type User = {
   id: string;
@@ -566,6 +575,23 @@ export const api = {
       method: "POST",
       body
     });
+  },
+
+  // Banners
+  getBanners() {
+    return apiRequest<Banner[]>("/api/banners");
+  },
+  getAdminBanners() {
+    return apiRequest<Banner[]>("/api/admin/banners");
+  },
+  createBanner(body: Partial<Banner>) {
+    return apiRequest<Banner>("/api/admin/banners", { method: "POST", body });
+  },
+  updateBanner(id: string, body: Partial<Banner>) {
+    return apiRequest<Banner>(`/api/admin/banners/${id}`, { method: "PUT", body });
+  },
+  deleteBanner(id: string) {
+    return apiRequest<void>(`/api/admin/banners/${id}`, { method: "DELETE" });
   }
 };
 

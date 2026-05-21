@@ -49,21 +49,21 @@ export default function BlogDetailPage() {
   return (
     <main className="min-h-screen bg-surface-container-lowest pb-24">
       {/* Hero Section with Image */}
-      <section className="relative h-[60vh] min-h-[400px] w-full overflow-hidden mb-12">
+      <section className="relative h-[35vh] md:h-[60vh] min-h-[260px] md:min-h-[400px] w-full overflow-hidden mb-8 md:mb-12">
         <img 
           src={blog.imageUrl || "https://images.unsplash.com/photo-1615397323214-729227520e5c?auto=format&fit=crop&q=80&w=1600"} 
           alt={blog.title}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end">
-          <div className="container mx-auto px-4 pb-16">
+          <div className="container mx-auto px-4 pb-8 md:pb-16">
             <div className="max-w-4xl">
-              <nav className="flex items-center gap-2 text-white/70 text-xs font-bold uppercase tracking-widest mb-6">
+              <nav className="flex items-center gap-2 text-white/70 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-4 md:mb-6">
                 <Link href="/" className="hover:text-white transition-colors">Trang chủ</Link>
                 <span className="material-symbols-outlined text-[10px]">chevron_right</span>
                 <span className="text-secondary-fixed">Bí quyết làm đẹp</span>
               </nav>
-              <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6 drop-shadow-lg">
+              <h1 className="font-headline text-2xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-4 md:mb-6 drop-shadow-lg">
                 {blog.title}
               </h1>
               <div className="flex items-center gap-6 text-white/80 text-sm font-medium">
@@ -73,7 +73,7 @@ export default function BlogDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-secondary text-lg">person</span>
-                  Hasaki Beauty
+                  Hậu Lê Coffee Beauty
                 </div>
               </div>
             </div>
@@ -82,11 +82,11 @@ export default function BlogDetailPage() {
       </section>
 
       <div className="container mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-16">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-16">
           {/* Main Content */}
           <article className="lg:w-2/3">
             {blog.excerpt && (
-              <p className="text-xl text-slate-600 font-medium italic mb-10 border-l-4 border-secondary pl-6 leading-relaxed">
+              <p className="text-lg md:text-xl text-slate-600 font-medium italic mb-6 md:mb-10 border-l-4 border-secondary pl-4 md:pl-6 leading-relaxed">
                 {blog.excerpt}
               </p>
             )}
@@ -97,9 +97,9 @@ export default function BlogDetailPage() {
             />
 
             {/* Social Share & Tags */}
-            <div className="mt-16 pt-8 border-t border-surface-container flex flex-wrap justify-between items-center gap-6">
+            <div className="mt-10 md:mt-16 pt-6 md:pt-8 border-t border-surface-container flex flex-wrap justify-between items-center gap-6">
               <div className="flex gap-2">
-                {['Skincare', 'Beauty Tips', 'Hasaki'].map(tag => (
+                {['Skincare', 'Beauty Tips', 'Hậu Lê Coffee'].map(tag => (
                   <span key={tag} className="px-4 py-1.5 bg-surface-container text-on-surface-variant rounded-full text-xs font-bold uppercase tracking-wider">
                     #{tag}
                   </span>

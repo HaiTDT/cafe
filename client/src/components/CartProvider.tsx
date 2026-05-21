@@ -28,8 +28,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await api.getCart();
       setCart(data);
-    } catch (error) {
-      console.error("Failed to fetch cart:", error);
+    } catch (error: any) {
+      if (error?.status !== 401) {
+        console.error("Failed to fetch cart:", error);
+      }
     } finally {
       setLoading(false);
     }

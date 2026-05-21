@@ -9,7 +9,8 @@ import { MobileBottomNav } from "./MobileBottomNav";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isCatalogPage = pathname === "/products";
-  const isAdminPage = pathname?.startsWith("/admin");
+  const isPosPage = pathname?.startsWith("/pos");
+  const isAdminPage = pathname?.startsWith("/admin") || isPosPage;
 
   if (isAdminPage) {
     return <div className="min-h-screen bg-background font-body text-on-surface antialiased">{children}</div>;

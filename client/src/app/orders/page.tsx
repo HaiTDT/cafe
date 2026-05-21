@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Protected } from "../../components/Protected";
 import { EmptyState, ErrorMessage } from "../../components/ui";
 import { api, formatPrice, type Order, type User, type FavoriteProduct, type Address, type Product } from "../../lib/api";
@@ -19,8 +20,9 @@ export default function OrdersPage() {
 }
 
 function OrdersContent() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<Section>("orders");
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   
   const sections = [
     { id: "orders", label: "Đơn hàng của tôi", icon: "shopping_bag" },
@@ -34,8 +36,9 @@ function OrdersContent() {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 sticky top-24">
-            <div className="flex items-center gap-4 mb-8">
+          <div className="bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-sm border border-outline-variant/30 md:sticky md:top-24">
+            {/* Avatar & Email - Desktop only */}
+            <div className="hidden md:flex items-center gap-4 mb-8">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
                 {user?.avatar ? (
                   <img src={user.avatar} alt={user.fullName || ""} className="w-full h-full object-cover" />
@@ -49,15 +52,16 @@ function OrdersContent() {
               </div>
             </div>
 
-            <nav className="space-y-1">
+            {/* Menu Tabs - Horizontal on Mobile, Vertical on Desktop */}
+            <nav className="flex md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none whitespace-nowrap -mx-4 px-4 md:mx-0 md:px-0">
               {sections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id as Section)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     activeSection === section.id
                       ? "bg-primary text-white shadow-md shadow-primary/20"
-                      : "text-on-surface-variant hover:bg-surface-container-low"
+                      : "text-on-surface-variant hover:bg-surface-container-low bg-surface-container-low/50 md:bg-transparent"
                   }`}
                 >
                   <span className="material-symbols-outlined text-xl">{section.icon}</span>
@@ -66,9 +70,13 @@ function OrdersContent() {
               ))}
             </nav>
             
-            <div className="mt-8 pt-6 border-t border-outline-variant/30">
+            {/* Logout Button - Desktop only */}
+            <div className="hidden md:block mt-8 pt-6 border-t border-outline-variant/30">
               <button 
-                onClick={() => { /* Logout logic */ }}
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-error hover:bg-error/5 transition-all"
               >
                 <span className="material-symbols-outlined text-xl">logout</span>

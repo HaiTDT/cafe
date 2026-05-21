@@ -36,7 +36,7 @@ export default function RegisterPage() {
   return (
     <>
       <div className="fixed inset-0 z-0">
-        <img alt="Hasaki Background" className="w-full h-full object-cover opacity-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLiBgG8H4R4nEW0-xaFI6ZHQd4zBXyGlaStshdD2rxrJ8xPHNq58jBHQIcAFTF2k4B89rjW9&Nef0eV-9dVKBjK5xmNDFrWXdtD0FfWuR5-lhJKNpOGcBI0qYR_MA6VIy&QqN_6o0aL58BS3dqmsLKLjmmPdEDgB0ssgmJ0&lbzDPgAZnQHhn_jAf6mawQ&_7AE_dWGTm5kmxx4nVQa4DzumyYV9ZCEWzhbVlhPm8wNyRmtEL7cBAWT9nTYG-MPN-uO&PgfhG1o&Ga" />
+        <img alt="Hậu Lê Coffee Background" className="w-full h-full object-cover opacity-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLiBgG8H4R4nEW0-xaFI6ZHQd4zBXyGlaStshdD2rxrJ8xPHNq58jBHQIcAFTF2k4B89rjW9&Nef0eV-9dVKBjK5xmNDFrWXdtD0FfWuR5-lhJKNpOGcBI0qYR_MA6VIy&QqN_6o0aL58BS3dqmsLKLjmmPdEDgB0ssgmJ0&lbzDPgAZnQHhn_jAf6mawQ&_7AE_dWGTm5kmxx4nVQa4DzumyYV9ZCEWzhbVlhPm8wNyRmtEL7cBAWT9nTYG-MPN-uO&PgfhG1o&Ga" />
         <div className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm"></div>
       </div>
       
@@ -44,7 +44,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-[500px] bg-surface-container-lowest rounded-xl shadow-[0_32px_64px_rgba(0,80,47,0.06)] overflow-hidden transition-all duration-300 organic-shadow">
           <div className="px-8 pt-10 pb-6 text-center">
             <div className="font-headline text-2xl font-extrabold tracking-tight text-primary mb-4">
-              HASAKI
+              HẬU LÊ COFFEE
             </div>
             <h1 className="text-2xl font-bold text-on-surface tracking-tight leading-tight">
               Đăng ký tài khoản

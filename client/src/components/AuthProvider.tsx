@@ -111,8 +111,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const latestUser = await api.getProfile();
       setUser(latestUser);
-    } catch (error) {
-      console.error("Failed to refresh user", error);
+    } catch (error: any) {
+      if (error?.status !== 401) {
+        console.error("Failed to refresh user", error);
+      }
     }
   }, []);
 

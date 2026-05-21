@@ -12,12 +12,20 @@ import { checkoutRouter } from "./routes/checkout.routes";
 import { healthRouter } from "./routes/health";
 import { orderRouter } from "./routes/orders.routes";
 import { productRouter } from "./routes/products";
-
 import { analyticsRouter } from "./routes/analytics.routes";
 import { blogRouter } from "./routes/blogs.routes";
 import { flashSaleRouter } from "./routes/flash-sale.routes";
 import { userRouter } from "./routes/user.routes";
 import { aiRouter } from "./routes/ai.routes";
+import { publicBannerRouter, adminBannerRouter } from "./routes/banners.routes";
+
+// POS Cafe Routers
+import { posAuthRouter } from "./routes/pos-auth.routes";
+import { posCategoryRouter } from "./routes/pos-category.routes";
+import { posProductRouter } from "./routes/pos-product.routes";
+import { posTableRouter } from "./routes/pos-table.routes";
+import { posOrderRouter } from "./routes/pos-order.routes";
+import { posAnalyticsRouter } from "./routes/pos-analytics.routes";
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
@@ -64,6 +72,16 @@ app.use("/api/blogs", blogRouter);
 app.use("/api/flash-sales", flashSaleRouter);
 app.use("/api/user", userRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/banners", publicBannerRouter);
+app.use("/api/admin/banners", adminBannerRouter);
+
+// POS Cafe Endpoints
+app.use("/api/pos/auth", posAuthRouter);
+app.use("/api/pos/categories", posCategoryRouter);
+app.use("/api/pos/products", posProductRouter);
+app.use("/api/pos/tables", posTableRouter);
+app.use("/api/pos/orders", posOrderRouter);
+app.use("/api/pos/analytics", posAnalyticsRouter);
 
 app.listen(port, () => {
   console.log(`API server listening on http://localhost:${port}`);
