@@ -8,7 +8,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Hậu Lê Coffee",
-  description: "Hậu Lê Coffee - Hệ thống mỹ phẩm & chăm sóc sắc đẹp chính hãng"
+  description: "Hậu Lê Coffee - Thưởng thức hương vị cà phê đậm đà, trà sữa thơm ngon và các món bánh ngọt hấp dẫn trong không gian thư giãn tuyệt vời.",
+  openGraph: {
+    title: "Hậu Lê Coffee",
+    description: "Thưởng thức hương vị cà phê đậm đà, trà sữa thơm ngon và các món bánh ngọt hấp dẫn trong không gian thư giãn tuyệt vời.",
+    type: "website",
+    locale: "vi_VN",
+  }
 };
 
 export default function RootLayout({
