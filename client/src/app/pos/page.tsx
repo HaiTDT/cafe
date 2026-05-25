@@ -3,11 +3,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { posApi, posTokenStore, formatPrice } from "../../lib/pos-api";
-import type { CafeTable, CafeCategory, CafeProduct, CafeOrder, CafeOrderItem, PaymentMethod, CafeTableStatus } from "../../lib/pos-api";
+import type { CafeTable, CafeCategory, CafeProduct, CafeOrder, CafeOrderItem, PaymentMethod, CafeTableStatus, Branch } from "../../lib/pos-api";
 import { ApiError } from "../../lib/api";
 
 export default function PosPage() {
   const router = useRouter();
+
+  // State quản lý chi nhánh
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [showBranchModal, setShowBranchModal] = useState(false);
 
   // State quản lý dữ liệu từ API
   const [tables, setTables] = useState<CafeTable[]>([]);
@@ -70,20 +75,30 @@ export default function PosPage() {
     }
 
     const savedUser = window.localStorage.getItem("pos_user");
+    let loadedUser = null;
     if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    } else {
-      // Fetch me nếu mất cache
-      posApi.getMe()
-        .then(res => {
-          setCurrentUser(res.user);
-          window.localStorage.setItem("pos_user", JSON.stringify(res.user));
-        })
-        .catch(() => {
+      loadedUser = JSON.parse(savedUser);
+      setCurrentUser(loadedUser);
+    }
+
+    const initData = async () => {
+      let user = loadedUser;
+      if (!user) {
+        try {
+          const res = await posApi.getMe();
+          user = res.user;
+          setCurrentUser(user);
+          window.localStorage.setItem("pos_user", JSON.stringify(user));
+        } catch (e) {
           posTokenStore.clear();
           router.push("/pos/login");
-        });
-    }
+          return;
+        }
+      }
+      await loadBranchesAndCheck(user);
+    };
+
+    initData();
 
     // Lắng nghe sự kiện mất auth
     const handleUnauthorized = () => {
@@ -91,13 +106,66 @@ export default function PosPage() {
     };
     window.addEventListener("pos-unauthorized", handleUnauthorized);
 
-    // Load dữ liệu
-    loadAllData();
-
     return () => {
       window.removeEventListener("pos-unauthorized", handleUnauthorized);
     };
   }, [router]);
+
+  // Load chi nhánh từ API và kiểm tra chi nhánh đã lưu
+  const loadBranchesAndCheck = async (userObj?: any) => {
+    try {
+      const branchesData = await posApi.getBranches();
+      const currentUserObj = userObj || currentUser;
+
+      // Nếu là STAFF và được chỉ định chi nhánh, ép chọn chi nhánh đó
+      if (currentUserObj && currentUserObj.role === "STAFF" && currentUserObj.branchId) {
+        const staffBranch = branchesData.find(b => b.id === currentUserObj.branchId);
+        if (staffBranch) {
+          setBranches([staffBranch]);
+          setSelectedBranch(staffBranch);
+          window.localStorage.setItem("pos_branch_id", staffBranch.id);
+          setShowBranchModal(false);
+          return;
+        }
+      }
+
+      setBranches(branchesData);
+      
+      const savedBranchId = window.localStorage.getItem("pos_branch_id");
+      if (savedBranchId) {
+        const found = branchesData.find(b => b.id === savedBranchId);
+        if (found) {
+          setSelectedBranch(found);
+          return;
+        }
+      }
+      
+      // Nếu chưa chọn chi nhánh hoặc chi nhánh không tồn tại, mở modal chọn chi nhánh
+      setShowBranchModal(true);
+    } catch (err) {
+      console.error("Load branches error:", err);
+      setError("Không thể tải danh sách chi nhánh từ máy chủ.");
+      setLoading(false);
+    }
+  };
+
+  const handleSelectBranch = (branch: Branch) => {
+    window.localStorage.setItem("pos_branch_id", branch.id);
+    setSelectedBranch(branch);
+    setShowBranchModal(false);
+    
+    // Reset trạng thái bán hàng khi chuyển đổi chi nhánh
+    setSelectedTable(null);
+    setActiveOrder(null);
+    setCurrentCartItems([]);
+  };
+
+  // Tự động load dữ liệu khi chi nhánh được chọn hoặc thay đổi
+  useEffect(() => {
+    if (selectedBranch) {
+      loadAllData();
+    }
+  }, [selectedBranch]);
 
   // Load danh sách Bàn, Danh mục, Sản phẩm
   const loadAllData = async () => {
@@ -469,14 +537,32 @@ export default function PosPage() {
 
       {/* Header Bar */}
       <header className="flex h-14 items-center justify-between bg-[#3e2723] text-white px-4 md:px-6 shadow-md z-10">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-[#fdfbf7] to-[#efebe9] shadow-sm shrink-0">
-            <span className="material-symbols-outlined text-xl text-[#3e2723] font-bold">local_cafe</span>
+        <div className="flex items-center gap-4 md:gap-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-[#fdfbf7] to-[#efebe9] shadow-sm shrink-0">
+              <span className="material-symbols-outlined text-xl text-[#3e2723] font-bold">local_cafe</span>
+            </div>
+            <div>
+              <h1 className="text-sm font-bold tracking-tight text-white font-headline">Hậu Lê Coffee - POS</h1>
+              <p className="text-[10px] text-stone-300 hidden sm:block">Hệ thống ghi order & thanh toán nội bộ</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-white font-headline">Hậu Lê Coffee - POS</h1>
-            <p className="text-[10px] text-stone-300 hidden sm:block">Hệ thống ghi order & thanh toán nội bộ</p>
-          </div>
+
+          {/* Chi nhánh đang chọn */}
+          {selectedBranch && (
+            <button
+              onClick={() => setShowBranchModal(true)}
+              disabled={currentUser?.role === "STAFF" && !!currentUser?.branchId}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-400 transition hover:bg-amber-500/20 active:scale-95 shadow-sm disabled:opacity-90 disabled:cursor-not-allowed"
+              title={currentUser?.role === "STAFF" && !!currentUser?.branchId ? "Chi nhánh làm việc cố định" : "Nhấp để đổi chi nhánh làm việc"}
+            >
+              <span className="material-symbols-outlined text-base">storefront</span>
+              <span className="max-w-[120px] sm:max-w-[200px] truncate">{selectedBranch.name}</span>
+              {!(currentUser?.role === "STAFF" && !!currentUser?.branchId) && (
+                <span className="material-symbols-outlined text-xs opacity-70">swap_horiz</span>
+              )}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-3 md:gap-6">
@@ -990,6 +1076,98 @@ export default function PosPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- BRANCH SELECTION MODAL --- */}
+      {showBranchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl border border-stone-250 bg-white p-6 shadow-2xl transition-all duration-300 transform scale-100">
+            <div className="flex items-center justify-between border-b border-stone-250 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3e2723] text-white">
+                  <span className="material-symbols-outlined text-lg">storefront</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-stone-900 font-headline uppercase tracking-wide">Chọn chi nhánh làm việc</h3>
+                  <p className="text-[10px] text-stone-500 mt-0.5">Vui lòng chọn cửa hàng để tải sơ đồ bàn và thực đơn</p>
+                </div>
+              </div>
+              {selectedBranch && (
+                <button
+                  onClick={() => setShowBranchModal(false)}
+                  className="text-stone-400 transition hover:text-stone-750 p-1.5 rounded-full hover:bg-stone-100"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 max-h-[350px] overflow-y-auto pr-1 space-y-3">
+              {branches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-stone-400">
+                  <span className="material-symbols-outlined text-4xl mb-2 animate-bounce">store_slash</span>
+                  <p className="text-xs">Không tìm thấy chi nhánh nào đang hoạt động.</p>
+                </div>
+              ) : (
+                branches.map(branch => {
+                  const isSelected = selectedBranch?.id === branch.id;
+                  return (
+                    <button
+                      key={branch.id}
+                      type="button"
+                      onClick={() => handleSelectBranch(branch)}
+                      className={`w-full flex items-start gap-4 rounded-xl border-2 p-4 text-left transition-all duration-200 ${
+                        isSelected
+                          ? "border-[#3e2723] bg-[#3e2723]/5 shadow-md"
+                          : "border-stone-200 bg-stone-50/50 hover:bg-white hover:border-[#3e2723] hover:shadow-md active:scale-[0.99]"
+                      }`}
+                    >
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                        isSelected ? "bg-[#3e2723] text-white" : "bg-stone-200 text-stone-600"
+                      }`}>
+                        <span className="material-symbols-outlined text-xl">store</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-stone-900">{branch.name}</span>
+                          {isSelected && (
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#3e2723] text-white text-[10px] font-bold">
+                              <span className="material-symbols-outlined text-xs">check</span>
+                            </span>
+                          )}
+                        </div>
+                        {branch.address && (
+                          <div className="flex items-center gap-1 text-[10px] text-stone-500 mt-1">
+                            <span className="material-symbols-outlined text-xs">location_on</span>
+                            <span className="truncate">{branch.address}</span>
+                          </div>
+                        )}
+                        {branch.phone && (
+                          <div className="flex items-center gap-1 text-[10px] text-stone-500 mt-0.5">
+                            <span className="material-symbols-outlined text-xs">call</span>
+                            <span>{branch.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {selectedBranch && (
+              <div className="flex justify-end mt-6 border-t border-stone-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowBranchModal(false)}
+                  className="rounded-lg border border-stone-200 bg-stone-100 px-5 py-2.5 text-xs font-semibold text-stone-650 transition hover:bg-stone-200 active:scale-95"
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

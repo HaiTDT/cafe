@@ -9,6 +9,17 @@ export interface PosUser {
   username: string;
   fullName: string;
   role: CafeRole;
+  branchId?: string | null;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CafeCategory {
@@ -42,6 +53,7 @@ export interface CafeTable {
   name: string;
   status: CafeTableStatus;
   isActive: boolean;
+  branchId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -141,6 +153,14 @@ async function posApiRequest<T>(path: string, options: RequestOptions = {}): Pro
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Tự động đính kèm chi nhánh đang chọn từ localStorage
+  if (typeof window !== "undefined") {
+    const branchId = window.localStorage.getItem("pos_branch_id");
+    if (branchId) {
+      headers.set("x-branch-id", branchId);
+    }
+  }
+
   let body: BodyInit | undefined;
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -204,7 +224,7 @@ export const posApi = {
   },
 
   // Staff management (Admin only)
-  createStaff(body: { username: string; password?: string; fullName: string; role: CafeRole }) {
+  createStaff(body: { username: string; password?: string; fullName: string; role: CafeRole; branchId?: string | null }) {
     return posApiRequest<{ message: string; user: PosUser }>("/api/pos/auth/staffs", {
       method: "POST",
       body
@@ -212,7 +232,20 @@ export const posApi = {
   },
 
   listStaffs() {
-    return posApiRequest<Array<PosUser & { createdAt: string }>>("/api/pos/auth/staffs");
+    return posApiRequest<Array<PosUser & { createdAt: string; branchName?: string | null }>>("/api/pos/auth/staffs");
+  },
+
+  updateStaff(id: string, body: { fullName?: string; role?: CafeRole; branchId?: string | null; password?: string }) {
+    return posApiRequest<{ message: string; user: PosUser }>(`/api/pos/auth/staffs/${id}`, {
+      method: "PUT",
+      body
+    });
+  },
+
+  deleteStaff(id: string) {
+    return posApiRequest<{ message: string }>(`/api/pos/auth/staffs/${id}`, {
+      method: "DELETE"
+    });
   },
 
   // Categories CRUD
@@ -354,6 +387,34 @@ export const posApi = {
   // Analytics (Admin only)
   getDashboardAnalytics() {
     return posApiRequest<PosDashboardData>("/api/pos/analytics/dashboard");
+  },
+
+  // Branches CRUD
+  getBranches(params: { showInactive?: boolean } = {}) {
+    const query = new URLSearchParams();
+    if (params.showInactive) query.set("showInactive", "true");
+    const queryString = query.toString();
+    return posApiRequest<Branch[]>(`/api/pos/branches${queryString ? "?" + queryString : ""}`);
+  },
+
+  createBranch(body: Partial<Branch>) {
+    return posApiRequest<Branch>("/api/pos/branches", {
+      method: "POST",
+      body
+    });
+  },
+
+  updateBranch(id: string, body: Partial<Branch>) {
+    return posApiRequest<Branch>(`/api/pos/branches/${id}`, {
+      method: "PUT",
+      body
+    });
+  },
+
+  deleteBranch(id: string) {
+    return posApiRequest<{ message: string }>(`/api/pos/branches/${id}`, {
+      method: "DELETE"
+    });
   }
 };
 

@@ -6,7 +6,7 @@ import { posApi, posTokenStore, formatPrice } from "../../../lib/pos-api";
 import type { CafeCategory, CafeProduct, CafeTable, CafeOrder, CafeOrderItem, PaymentMethod, CafeOrderStatus } from "../../../lib/pos-api";
 import { ApiError } from "../../../lib/api";
 
-type TabType = "dashboard" | "menu" | "tables" | "history";
+type TabType = "dashboard" | "menu" | "tables" | "history" | "branches" | "staff";
 type MenuSubTabType = "products" | "categories";
 
 export default function PosAdminPage() {
@@ -17,6 +17,10 @@ export default function PosAdminPage() {
   const [menuSubTab, setMenuSubTab] = useState<MenuSubTabType>("products");
   const [currentUser, setCurrentUser] = useState<any>(null);
   
+  // Branch States
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+
   // Data States
   const [categories, setCategories] = useState<CafeCategory[]>([]);
   const [products, setProducts] = useState<CafeProduct[]>([]);
@@ -68,14 +72,95 @@ export default function PosAdminPage() {
   const [tableName, setTableName] = useState("");
   const [tableIsActive, setTableIsActive] = useState(true);
 
-  // Load Admin Profile
+  // Branch CRUD Modal State
+  const [showBranchCrudModal, setShowBranchCrudModal] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<any | null>(null);
+  const [branchName, setBranchName] = useState("");
+  const [branchAddress, setBranchAddress] = useState("");
+  const [branchPhone, setBranchPhone] = useState("");
+  const [branchIsActive, setBranchIsActive] = useState(true);
+
+  // Staff States & Modal
+  const [staffs, setStaffs] = useState<any[]>([]);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
+  const [staffUsername, setStaffUsername] = useState("");
+  const [staffFullName, setStaffFullName] = useState("");
+  const [staffPassword, setStaffPassword] = useState("");
+  const [staffRole, setStaffRole] = useState<"ADMIN" | "STAFF">("STAFF");
+  const [staffBranchId, setStaffBranchId] = useState("");
+
+  // Load list of branches and set active branch
+  const loadBranches = async () => {
+    try {
+      const branchesData = await posApi.getBranches({ showInactive: true });
+      setBranches(branchesData);
+      
+      const savedBranchId = window.localStorage.getItem("pos_branch_id");
+      let activeId = "";
+      if (savedBranchId) {
+        const found = branchesData.find(b => b.id === savedBranchId);
+        if (found) {
+          activeId = found.id;
+        }
+      }
+      
+      if (!activeId && branchesData.length > 0) {
+        const activeBranch = branchesData.find(b => b.isActive) || branchesData[0];
+        activeId = activeBranch.id;
+        window.localStorage.setItem("pos_branch_id", activeId);
+      }
+      
+      setSelectedBranchId(activeId);
+      return activeId;
+    } catch (err) {
+      console.error("Load branches error:", err);
+      showToast("error", "Không thể tải danh sách chi nhánh.");
+      return "";
+    }
+  };
+
+  const handleBranchChange = (branchId: string) => {
+    window.localStorage.setItem("pos_branch_id", branchId);
+    setSelectedBranchId(branchId);
+    
+    // Refresh active tab data
+    if (activeTab === "dashboard") {
+      loadDashboardData();
+    } else if (activeTab === "menu") {
+      loadMenuData();
+    } else if (activeTab === "tables") {
+      loadTablesData();
+    } else if (activeTab === "history") {
+      loadHistoryData();
+    }
+  };
+
+  // Load Admin Profile & Branches
   useEffect(() => {
     const savedUser = window.localStorage.getItem("pos_user");
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
     
-    loadDashboardData();
+    const init = async () => {
+      setLoading(true);
+      const activeId = await loadBranches();
+      if (activeId) {
+        if (activeTab === "dashboard") {
+          loadDashboardData();
+        } else if (activeTab === "menu") {
+          loadMenuData();
+        } else if (activeTab === "tables") {
+          loadTablesData();
+        } else if (activeTab === "history") {
+          loadHistoryData();
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   // Show Toast Helper
@@ -151,6 +236,8 @@ export default function PosAdminPage() {
 
   // Switch Main Tabs Handler
   useEffect(() => {
+    if (branches.length === 0) return;
+    
     if (activeTab === "dashboard") {
       loadDashboardData();
     } else if (activeTab === "menu") {
@@ -159,6 +246,8 @@ export default function PosAdminPage() {
       loadTablesData();
     } else if (activeTab === "history") {
       loadHistoryData();
+    } else if (activeTab === "staff") {
+      loadStaffsData();
     }
   }, [activeTab]);
 
@@ -360,7 +449,8 @@ export default function PosAdminPage() {
       } else {
         const created = await posApi.createTable({
           name: tableName.trim(),
-          isActive: tableIsActive
+          isActive: tableIsActive,
+          branchId: selectedBranchId
         });
         showToast("success", `Đã tạo ${created.name} thành công!`);
       }
@@ -413,6 +503,186 @@ export default function PosAdminPage() {
       loadTablesData();
     } catch (err: any) {
       showToast("error", err.message || "Gặp lỗi khi xóa bàn.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ==========================================
+  // BRANCHES CRUD OPERATIONS
+  // ==========================================
+  const handleOpenBranchModal = (branch: any | null = null) => {
+    if (branch) {
+      setEditingBranch(branch);
+      setBranchName(branch.name);
+      setBranchAddress(branch.address || "");
+      setBranchPhone(branch.phone || "");
+      setBranchIsActive(branch.isActive);
+    } else {
+      setEditingBranch(null);
+      setBranchName("");
+      setBranchAddress("");
+      setBranchPhone("");
+      setBranchIsActive(true);
+    }
+    setShowBranchCrudModal(true);
+  };
+
+  const handleSaveBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!branchName.trim()) {
+      showToast("warning", "Tên chi nhánh không được để trống");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const payload = {
+        name: branchName.trim(),
+        address: branchAddress.trim() || undefined,
+        phone: branchPhone.trim() || undefined,
+        isActive: branchIsActive
+      };
+
+      if (editingBranch) {
+        const updated = await posApi.updateBranch(editingBranch.id, payload);
+        showToast("success", `Cập nhật chi nhánh "${updated.name}" thành công!`);
+      } else {
+        const created = await posApi.createBranch(payload);
+        showToast("success", `Đã tạo chi nhánh "${created.name}" thành công!`);
+      }
+      setShowBranchCrudModal(false);
+      loadBranches();
+    } catch (err: any) {
+      showToast("error", err.message || "Không thể lưu chi nhánh.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleQuickToggleBranch = async (branch: any) => {
+    try {
+      const updatedValue = !branch.isActive;
+      await posApi.updateBranch(branch.id, { isActive: updatedValue });
+      showToast("success", `Đã cập nhật trạng thái chi nhánh "${branch.name}"`);
+      setBranches(prev => prev.map(b => b.id === branch.id ? { ...b, isActive: updatedValue } : b));
+    } catch (err: any) {
+      showToast("error", err.message || "Không thể cập nhật trạng thái chi nhánh.");
+    }
+  };
+
+  const handleDeleteBranch = async (branch: any) => {
+    if (!confirm(`Bạn có chắc muốn xóa chi nhánh "${branch.name}"? Đối với các chi nhánh đã có dữ liệu bàn ăn hoặc hóa đơn, hệ thống sẽ tự động chuyển sang ẩn hoạt động.`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await posApi.deleteBranch(branch.id);
+      showToast("success", res.message || "Xóa chi nhánh thành công.");
+      loadBranches();
+    } catch (err: any) {
+      showToast("error", err.message || "Gặp lỗi khi xóa chi nhánh.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ==========================================
+  // STAFF MANAGEMENT OPERATIONS
+  // ==========================================
+  const loadStaffsData = async () => {
+    setActionLoading(true);
+    try {
+      const data = await posApi.listStaffs();
+      setStaffs(data);
+    } catch (err: any) {
+      console.error("Load staffs error:", err);
+      showToast("error", "Không thể tải danh sách nhân viên.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenStaffModal = (staff: any | null = null) => {
+    if (staff) {
+      setEditingStaff(staff);
+      setStaffUsername(staff.username);
+      setStaffFullName(staff.fullName);
+      setStaffRole(staff.role);
+      setStaffBranchId(staff.branchId || "");
+      setStaffPassword("");
+    } else {
+      setEditingStaff(null);
+      setStaffUsername("");
+      setStaffFullName("");
+      setStaffRole("STAFF");
+      setStaffBranchId("");
+      setStaffPassword("");
+    }
+    setShowStaffModal(true);
+  };
+
+  const handleSaveStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffUsername.trim() || !staffFullName.trim()) {
+      showToast("warning", "Vui lòng nhập đầy đủ thông tin bắt buộc.");
+      return;
+    }
+    if (!editingStaff && !staffPassword) {
+      showToast("warning", "Mật khẩu là bắt buộc khi tạo nhân viên mới.");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const payload: any = {
+        fullName: staffFullName.trim(),
+        role: staffRole,
+        branchId: staffBranchId || null
+      };
+      if (staffPassword) {
+        payload.password = staffPassword;
+      }
+
+      if (editingStaff) {
+        await posApi.updateStaff(editingStaff.id, payload);
+        showToast("success", `Cập nhật tài khoản "${staffFullName.trim()}" thành công!`);
+      } else {
+        await posApi.createStaff({
+          username: staffUsername.trim().toLowerCase(),
+          password: staffPassword,
+          fullName: staffFullName.trim(),
+          role: staffRole,
+          branchId: staffBranchId || null
+        });
+        showToast("success", `Tạo tài khoản nhân viên "${staffFullName.trim()}" thành công!`);
+      }
+      setShowStaffModal(false);
+      loadStaffsData();
+    } catch (err: any) {
+      showToast("error", err.message || "Gặp lỗi khi lưu thông tin nhân viên.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteStaff = async (staff: any) => {
+    if (staff.id === currentUser?.id) {
+      showToast("error", "Bạn không thể tự xóa tài khoản của chính mình.");
+      return;
+    }
+    if (!confirm(`Bạn có chắc chắn muốn gỡ quyền truy cập của nhân viên "${staff.fullName}"?`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await posApi.deleteStaff(staff.id);
+      showToast("success", res.message || "Gỡ quyền nhân viên thành công.");
+      loadStaffsData();
+    } catch (err: any) {
+      showToast("error", err.message || "Gặp lỗi khi gỡ quyền nhân viên.");
     } finally {
       setActionLoading(false);
     }
@@ -493,7 +763,9 @@ export default function PosAdminPage() {
               { id: "dashboard", label: "Dashboard Doanh thu", icon: "dashboard" },
               { id: "menu", label: "Quản lý Thực đơn", icon: "restaurant_menu" },
               { id: "tables", label: "Quản lý Sơ đồ Bàn", icon: "table_restaurant" },
-              { id: "history", label: "Lịch sử Hóa đơn", icon: "receipt_long" }
+              { id: "history", label: "Lịch sử Hóa đơn", icon: "receipt_long" },
+              { id: "branches", label: "Quản lý Chi nhánh", icon: "store" },
+              { id: "staff", label: "Quản lý Nhân viên", icon: "badge" }
             ].map(item => (
               <button
                 key={item.id}
@@ -561,12 +833,29 @@ export default function PosAdminPage() {
             <h1 className="text-sm md:text-base font-black text-stone-900 capitalize tracking-wide">
               {activeTab === "dashboard" ? "Dashboard Doanh thu" :
                activeTab === "menu" ? "Quản lý Thực đơn" :
-               activeTab === "tables" ? "Quản lý Sơ đồ Bàn" : "Lịch sử Hóa đơn"}
+               activeTab === "tables" ? "Quản lý Sơ đồ Bàn" :
+               activeTab === "branches" ? "Quản lý Chi nhánh" : "Lịch sử Hóa đơn"}
             </h1>
             <p className="text-[9px] md:text-[10px] text-stone-500">Trang quản trị vận hành dành cho Admin</p>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Bộ chọn chi nhánh */}
+            {branches.length > 0 && activeTab !== "branches" && (
+              <div className="flex items-center gap-1.5 md:gap-2 mr-2">
+                <span className="material-symbols-outlined text-stone-500 text-base hidden sm:inline">storefront</span>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => handleBranchChange(e.target.value)}
+                  className="rounded-xl border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-bold text-stone-700 outline-none transition focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723] cursor-pointer shadow-sm hover:border-stone-300"
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id} disabled={!b.isActive}>{b.name}{!b.isActive ? " (Ẩn)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Quick Navigation for Mobile */}
             <div className="flex items-center gap-1 md:hidden">
               <button
@@ -596,7 +885,9 @@ export default function PosAdminPage() {
               onClick={
                 activeTab === "dashboard" ? loadDashboardData :
                 activeTab === "menu" ? loadMenuData :
-                activeTab === "tables" ? loadTablesData : loadHistoryData
+                activeTab === "tables" ? loadTablesData :
+                activeTab === "branches" ? loadBranches :
+                activeTab === "staff" ? loadStaffsData : loadHistoryData
               }
               disabled={actionLoading}
               className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-xl bg-white border border-stone-200 text-stone-600 transition hover:text-stone-900 hover:border-stone-350 disabled:opacity-50"
@@ -1234,6 +1525,201 @@ export default function PosAdminPage() {
             </div>
           )}
 
+          {/* ======================================================== */}
+          {/* TAB 5: BRANCHES MANAGEMENT */}
+          {/* ======================================================== */}
+          {activeTab === "branches" && (
+            <div className="space-y-6">
+              {/* Header Bar */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 font-headline">Quản lý các Chi nhánh / Quán</h3>
+                  <p className="text-[10px] text-stone-500 mt-1">Quản lý danh sách, thông tin địa chỉ và số điện thoại liên lạc của từng chi nhánh trong chuỗi cửa hàng.</p>
+                </div>
+                
+                <button
+                  onClick={() => handleOpenBranchModal(null)}
+                  className="w-full md:w-auto flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#3e2723] to-[#5d4037] px-4 py-2.5 text-xs font-bold text-white shadow hover:from-[#5d4037] hover:to-[#3e2723] transition duration-200 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-base">add</span>
+                  Thêm chi nhánh mới
+                </button>
+              </div>
+
+              {/* Branches Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {branches.map(branch => (
+                  <div
+                    key={branch.id}
+                    className={`rounded-xl border p-5 flex flex-col justify-between transition-all duration-200 bg-white ${
+                      branch.isActive ? "border-stone-200 hover:border-stone-300 hover:shadow-sm" : "border-red-200 bg-red-50/5 opacity-85"
+                    }`}
+                  >
+                    <div>
+                      {/* Name and status */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                            branch.isActive ? "bg-[#3e2723]/10 text-[#3e2723]" : "bg-stone-100 text-stone-400"
+                          }`}>
+                            <span className="material-symbols-outlined text-lg">storefront</span>
+                          </div>
+                          <span className="text-xs font-bold text-stone-900 truncate max-w-[150px]">{branch.name}</span>
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                          branch.isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-250" : "bg-red-50 text-red-655 border border-red-200"
+                        }`}>
+                          {branch.isActive ? "Hoạt động" : "Tạm ẩn"}
+                        </span>
+                      </div>
+
+                      {/* Details */}
+                      <div className="mt-4 space-y-2 text-xs text-stone-600">
+                        <div className="flex items-start gap-2">
+                          <span className="material-symbols-outlined text-stone-400 text-base">location_on</span>
+                          <span className="leading-tight">{branch.address || <em className="text-stone-400">Chưa cập nhật địa chỉ</em>}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-stone-400 text-base">call</span>
+                          <span>{branch.phone || <em className="text-stone-400">Chưa cập nhật SĐT</em>}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4">
+                      {/* Switch to toggle active status */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`toggle-branch-${branch.id}`}
+                          checked={branch.isActive}
+                          onChange={() => handleQuickToggleBranch(branch)}
+                          className="h-3.5 w-3.5 cursor-pointer accent-[#3e2723] rounded"
+                        />
+                        <label htmlFor={`toggle-branch-${branch.id}`} className="text-[10px] font-bold text-stone-500 cursor-pointer">
+                          Kích hoạt
+                        </label>
+                      </div>
+
+                      {/* Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleOpenBranchModal(branch)}
+                          className="inline-flex items-center justify-center p-2 rounded-lg bg-stone-100 border border-stone-200 hover:bg-[#3e2723]/5 hover:text-[#3e2723] hover:border-[#3e2723]/30 transition"
+                          title="Sửa thông tin"
+                        >
+                          <span className="material-symbols-outlined text-base">edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBranch(branch)}
+                          className="inline-flex items-center justify-center p-2 rounded-lg bg-stone-100 border border-stone-200 text-stone-450 hover:bg-red-50 hover:text-red-650 hover:border-red-200 transition"
+                          title="Xóa chi nhánh"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 6: STAFF MANAGEMENT */}
+          {/* ======================================================== */}
+          {activeTab === "staff" && (
+            <div className="space-y-6">
+              {/* Header Bar */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 font-headline">Quản lý tài khoản Nhân viên</h3>
+                  <p className="text-[10px] text-stone-500 mt-1">Cấp tài khoản bán hàng, thiết lập quyền hạn và chỉ định chi nhánh làm việc cố định cho nhân viên.</p>
+                </div>
+                
+                <button
+                  onClick={() => handleOpenStaffModal(null)}
+                  className="w-full md:w-auto flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#3e2723] to-[#5d4037] px-4 py-2.5 text-xs font-bold text-white shadow hover:from-[#5d4037] hover:to-[#3e2723] transition duration-200 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-base">person_add</span>
+                  Thêm nhân viên mới
+                </button>
+              </div>
+
+              {/* Staff Table */}
+              <div className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-stone-200 text-stone-500 bg-stone-50">
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Họ và tên</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Email đăng nhập</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Vai trò</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Chi nhánh chỉ định</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Ngày tạo</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider text-center">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {staffs.length > 0 ? (
+                        staffs.map(staff => (
+                          <tr key={staff.id} className="hover:bg-stone-50/50 transition">
+                            <td className="py-4 px-6 font-bold text-stone-850">{staff.fullName}</td>
+                            <td className="py-4 px-6 text-stone-600">{staff.username}</td>
+                            <td className="py-4 px-6">
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase border ${
+                                staff.role === "ADMIN" ? "bg-amber-50 text-amber-700 border-amber-250" : "bg-blue-50 text-blue-700 border-blue-250"
+                              }`}>
+                                {staff.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              {staff.branchName ? (
+                                <span className="inline-flex items-center gap-1 text-[#3e2723] font-semibold">
+                                  <span className="material-symbols-outlined text-sm">storefront</span>
+                                  {staff.branchName}
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 italic">Tất cả chi nhánh (ADMIN) hoặc Chưa gán</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6 text-stone-500">
+                              {new Date(staff.createdAt).toLocaleDateString("vi-VN")}
+                            </td>
+                            <td className="py-4 px-6 text-center space-x-2">
+                              <button
+                                onClick={() => handleOpenStaffModal(staff)}
+                                className="inline-flex items-center gap-1 rounded bg-stone-100 border border-stone-200 px-2.5 py-1.5 text-[10px] font-bold text-stone-750 hover:bg-stone-200 transition"
+                              >
+                                <span className="material-symbols-outlined text-xs">edit</span>
+                                Sửa
+                              </button>
+                              {staff.id !== currentUser?.id && (
+                                <button
+                                  onClick={() => handleDeleteStaff(staff)}
+                                  className="inline-flex items-center gap-1 rounded bg-red-50 border border-red-200 px-2.5 py-1.5 text-[10px] font-bold text-red-650 hover:bg-red-100 transition"
+                                >
+                                  <span className="material-symbols-outlined text-xs">delete</span>
+                                  Gỡ quyền
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-16 text-center text-stone-500">
+                            {actionLoading ? "Đang tải dữ liệu nhân viên..." : "Không tìm thấy nhân viên nào."}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom Navigation for Mobile Admin */}
@@ -1242,7 +1728,9 @@ export default function PosAdminPage() {
             { id: "dashboard", label: "Báo cáo", icon: "dashboard" },
             { id: "menu", label: "Thực đơn", icon: "restaurant_menu" },
             { id: "tables", label: "Sơ đồ bàn", icon: "table_restaurant" },
-            { id: "history", label: "Hóa đơn", icon: "receipt_long" }
+            { id: "history", label: "Hóa đơn", icon: "receipt_long" },
+            { id: "branches", label: "Chi nhánh", icon: "store" },
+            { id: "staff", label: "Nhân viên", icon: "badge" }
           ].map(item => (
             <button
               key={item.id}
@@ -1601,6 +2089,191 @@ export default function PosAdminPage() {
                 Đóng chi tiết
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 5: ADD / EDIT BRANCH */}
+      {/* ======================================================== */}
+      {showBranchCrudModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-[#3e2723]">
+                {editingBranch ? `Cập nhật chi nhánh: ${editingBranch.name}` : "Tạo chi nhánh mới"}
+              </h3>
+              <button onClick={() => setShowBranchCrudModal(false)} className="text-stone-400 hover:text-stone-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBranch} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Tên chi nhánh <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Hậu Lê Cafe - Quận 1..."
+                  value={branchName}
+                  onChange={(e) => setBranchName(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Địa chỉ</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: 123 Đường Nguyễn Huệ, Quận 1..."
+                  value={branchAddress}
+                  onChange={(e) => setBranchAddress(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Số điện thoại liên hệ</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: 0901234567..."
+                  value={branchPhone}
+                  onChange={(e) => setBranchPhone(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="branchActive"
+                  checked={branchIsActive}
+                  onChange={(e) => setBranchIsActive(e.target.checked)}
+                  className="h-4 w-4 rounded border-stone-300 bg-white accent-[#3e2723]"
+                />
+                <label htmlFor="branchActive" className="text-xs font-semibold text-stone-700 cursor-pointer">Chi nhánh đang hoạt động</label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setShowBranchCrudModal(false)}
+                  className="rounded-lg border border-stone-200 bg-stone-100 px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-200 hover:text-stone-850 transition"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#d97706] to-[#b45309] px-5 py-2.5 text-xs font-bold text-white shadow hover:from-[#f59e0b] hover:to-[#d97706] disabled:opacity-50"
+                >
+                  {actionLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 6: ADD / EDIT STAFF */}
+      {/* ======================================================== */}
+      {showStaffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-[#3e2723]">
+                {editingStaff ? `Cập nhật nhân viên: ${editingStaff.fullName}` : "Thêm nhân viên mới"}
+              </h3>
+              <button onClick={() => setShowStaffModal(false)} className="text-stone-400 hover:text-stone-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaff} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Email đăng nhập (Username) <span className="text-red-500">*</span></label>
+                <input
+                  type="email"
+                  placeholder="Ví dụ: staff1@domain.com"
+                  value={staffUsername}
+                  onChange={(e) => setStaffUsername(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723] disabled:opacity-50"
+                  required
+                  disabled={!!editingStaff}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Họ và tên nhân viên <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Nguyễn Văn A..."
+                  value={staffFullName}
+                  onChange={(e) => setStaffFullName(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Mật khẩu {editingStaff && <span className="text-stone-400 font-normal">(Để trống nếu không muốn đổi)</span>} {!editingStaff && <span className="text-red-500">*</span>}</label>
+                <input
+                  type="password"
+                  placeholder={editingStaff ? "Nhập mật khẩu mới..." : "Nhập mật khẩu..."}
+                  value={staffPassword}
+                  onChange={(e) => setStaffPassword(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 placeholder-stone-400 outline-none focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                  required={!editingStaff}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Vai trò <span className="text-red-500">*</span></label>
+                  <select
+                    value={staffRole}
+                    onChange={(e) => setStaffRole(e.target.value as "ADMIN" | "STAFF")}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 outline-none cursor-pointer focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                    required
+                  >
+                    <option value="STAFF">Nhân viên (STAFF)</option>
+                    <option value="ADMIN">Quản trị viên (ADMIN)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Chi nhánh làm việc</label>
+                  <select
+                    value={staffBranchId}
+                    onChange={(e) => setStaffBranchId(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-850 outline-none cursor-pointer focus:border-[#3e2723] focus:ring-1 focus:ring-[#3e2723]"
+                  >
+                    <option value="">-- Tất cả chi nhánh / Chưa gán --</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setShowStaffModal(false)}
+                  className="rounded-lg border border-stone-200 bg-stone-100 px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-200 hover:text-stone-850 transition"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#d97706] to-[#b45309] px-5 py-2.5 text-xs font-bold text-white shadow hover:from-[#f59e0b] hover:to-[#d97706] disabled:opacity-50"
+                >
+                  {actionLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
