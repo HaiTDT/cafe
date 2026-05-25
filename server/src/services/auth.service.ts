@@ -12,6 +12,7 @@ const userSelect = {
   fullName: true,
   phone: true,
   role: true,
+  branchId: true,
   createdAt: true,
   updatedAt: true
 } satisfies Prisma.UserSelect;

@@ -91,7 +91,8 @@ export const posAuthController = {
           id: user.id,
           username: user.email,
           fullName: user.fullName || user.email,
-          role: user.role
+          role: user.role,
+          branchId: user.branchId
         }
       });
     } catch (error) {
@@ -114,7 +115,7 @@ export const posAuthController = {
   // Admin có thể tạo tài khoản nhân viên mới
   async createStaff(req: Request, res: Response) {
     try {
-      const { username, password, fullName, role } = req.body;
+      const { username, password, fullName, role, branchId } = req.body;
 
       if (!username || !password || !fullName) {
         return res.status(400).json({ message: "Vui lòng nhập đầy đủ: username (email), password, fullName" });
@@ -135,7 +136,8 @@ export const posAuthController = {
           email: username.trim().toLowerCase(),
           passwordHash,
           fullName: fullName.trim(),
-          role: role === "STAFF" ? "STAFF" : "ADMIN"
+          role: role === "STAFF" ? "STAFF" : "ADMIN",
+          branchId: branchId || null
         }
       });
 
@@ -145,7 +147,8 @@ export const posAuthController = {
           id: newUser.id,
           username: newUser.email,
           fullName: newUser.fullName || newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          branchId: newUser.branchId
         }
       });
     } catch (error) {
@@ -167,7 +170,14 @@ export const posAuthController = {
           email: true,
           fullName: true,
           role: true,
-          createdAt: true
+          createdAt: true,
+          branchId: true,
+          branch: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
         },
         orderBy: { createdAt: "desc" }
       });
@@ -178,13 +188,98 @@ export const posAuthController = {
         username: staff.email,
         fullName: staff.fullName || staff.email,
         role: staff.role,
-        createdAt: staff.createdAt
+        createdAt: staff.createdAt,
+        branchId: staff.branchId,
+        branchName: staff.branch?.name || null
       }));
 
       return res.json(mappedStaffs);
     } catch (error) {
       console.error("List staffs error:", error);
       return res.status(500).json({ message: "Lỗi hệ thống khi lấy danh sách nhân viên" });
+    }
+  },
+
+  async updateStaff(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { fullName, role, branchId, password } = req.body;
+
+      const user = await prisma.user.findUnique({
+        where: { id }
+      });
+
+      if (!user || (user.role !== "ADMIN" && user.role !== "STAFF")) {
+        return res.status(404).json({ message: "Không tìm thấy tài khoản nhân viên" });
+      }
+
+      const updateData: any = {};
+
+      if (fullName !== undefined) {
+        updateData.fullName = fullName.trim();
+      }
+
+      if (role !== undefined) {
+        if (role !== "ADMIN" && role !== "STAFF") {
+          return res.status(400).json({ message: "Vai trò không hợp lệ" });
+        }
+        updateData.role = role;
+      }
+
+      if (branchId !== undefined) {
+        updateData.branchId = branchId || null;
+      }
+
+      if (password) {
+        updateData.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: updateData
+      });
+
+      return res.json({
+        message: "Cập nhật nhân viên thành công",
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.email,
+          fullName: updatedUser.fullName || updatedUser.email,
+          role: updatedUser.role,
+          branchId: updatedUser.branchId
+        }
+      });
+    } catch (error) {
+      console.error("Update staff error:", error);
+      return res.status(500).json({ message: "Lỗi hệ thống khi cập nhật thông tin nhân viên" });
+    }
+  },
+
+  async deleteStaff(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const user = await prisma.user.findUnique({
+        where: { id }
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Không tìm thấy tài khoản" });
+      }
+
+      // Chuyển vai trò về CUSTOMER và gỡ liên kết chi nhánh thay vì xóa hẳn (để tránh lỗi ràng buộc khóa ngoại)
+      await prisma.user.update({
+        where: { id },
+        data: {
+          role: "CUSTOMER",
+          branchId: null
+        }
+      });
+
+      return res.json({ message: "Đã gỡ bỏ quyền nhân viên thành công" });
+    } catch (error) {
+      console.error("Delete staff error:", error);
+      return res.status(500).json({ message: "Lỗi hệ thống khi gỡ bỏ nhân viên" });
     }
   }
 };

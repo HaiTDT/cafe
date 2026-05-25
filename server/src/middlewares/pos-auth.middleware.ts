@@ -53,8 +53,19 @@ export const authenticatePosJwt = async (
       id: adminUser.id,
       username: adminUser.email,
       role: adminUser.role,
-      fullName: adminUser.fullName || adminUser.email
+      fullName: adminUser.fullName || adminUser.email,
+      branchId: adminUser.branchId
     };
+
+    // Nếu là STAFF và đã có chi nhánh được gán, cưỡng chế sử dụng chi nhánh đó
+    if (adminUser.role === "STAFF" && adminUser.branchId) {
+      req.posBranchId = adminUser.branchId;
+    } else {
+      const branchId = req.headers["x-branch-id"] as string;
+      if (branchId) {
+        req.posBranchId = branchId;
+      }
+    }
 
     return next();
   } catch (error) {

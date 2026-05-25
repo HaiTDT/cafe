@@ -40,6 +40,8 @@ model User {
   reviews      Review[]
   favorites    FavoriteProduct[]
   addresses    Address[]
+  branchId     String?
+  branch       Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -277,13 +279,16 @@ enum PaymentMethod {
 
 model CafeTable {
   id        String          @id @default(uuid())
-  name      String          @unique
+  name      String
   status    CafeTableStatus @default(EMPTY)
   isActive  Boolean         @default(true)
+  branchId  String
+  branch    Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
   orders    CafeOrder[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
+  @@unique([branchId, name])
   @@map("cafe_tables")
 }
 
@@ -296,6 +301,8 @@ model CafeOrder {
   items       CafeOrderItem[]
   payments    Payment[]
   createdById String?
+  branchId    String
+  branch      Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -327,3 +334,19 @@ model Payment {
 
   @@map("payments")
 }
+
+model Branch {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  address   String?
+  phone     String?
+  isActive  Boolean     @default(true)
+  tables    CafeTable[]
+  orders    CafeOrder[]
+  users     User[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("branches")
+}
+

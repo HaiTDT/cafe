@@ -11,3 +11,5 @@ posAuthRouter.get("/me", authenticatePosJwt, posAuthController.me);
 // Quản trị nhân viên (chỉ Admin mới được thao tác)
 posAuthRouter.post("/staffs", authenticatePosJwt, requirePosAdmin, posAuthController.createStaff);
 posAuthRouter.get("/staffs", authenticatePosJwt, requirePosAdmin, posAuthController.listStaffs);
+posAuthRouter.put("/staffs/:id", authenticatePosJwt, requirePosAdmin, posAuthController.updateStaff);
+posAuthRouter.delete("/staffs/:id", authenticatePosJwt, requirePosAdmin, posAuthController.deleteStaff);

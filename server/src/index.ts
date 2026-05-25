@@ -26,6 +26,7 @@ import { posProductRouter } from "./routes/pos-product.routes";
 import { posTableRouter } from "./routes/pos-table.routes";
 import { posOrderRouter } from "./routes/pos-order.routes";
 import { posAnalyticsRouter } from "./routes/pos-analytics.routes";
+import { posBranchRouter } from "./routes/pos-branch.routes";
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
@@ -38,8 +39,13 @@ app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = [clientUrl, "http://localhost:3000", "https://mis-hasaki-client.vercel.app"];
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+      const allowedOrigins = [
+        clientUrl,
+        "http://localhost:3000",
+        "https://mis-hasaki-client.vercel.app",
+        "http://localhost:8081" // Expo Dev Server
+      ];
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.startsWith("http://localhost:")) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -82,6 +88,7 @@ app.use("/api/pos/products", posProductRouter);
 app.use("/api/pos/tables", posTableRouter);
 app.use("/api/pos/orders", posOrderRouter);
 app.use("/api/pos/analytics", posAnalyticsRouter);
+app.use("/api/pos/branches", posBranchRouter);
 
 app.listen(port, () => {
   console.log(`API server listening on http://localhost:${port}`);

@@ -6,8 +6,13 @@ export const posOrderController = {
   // Lấy các hóa đơn đang mở (PENDING)
   async listActive(req: Request, res: Response) {
     try {
+      const branchId = req.posBranchId;
+      if (!branchId) {
+        return res.status(400).json({ message: "Vui lòng chỉ định chi nhánh hoạt động" });
+      }
+
       const orders = await prisma.cafeOrder.findMany({
-        where: { status: "PENDING" },
+        where: { status: "PENDING", branchId },
         include: {
           table: true,
           items: {
@@ -119,6 +124,7 @@ export const posOrderController = {
         const order = await tx.cafeOrder.create({
           data: {
             tableId,
+            branchId: table.branchId,
             status: "PENDING",
             totalAmount,
             createdById: req.posUser?.id || null,
@@ -391,9 +397,14 @@ export const posOrderController = {
   // Xem lịch sử hóa đơn
   async listHistory(req: Request, res: Response) {
     try {
-      const { startDate, endDate, status } = req.query;
+      const { startDate, endDate, status, branchId } = req.query;
+      const targetBranchId = (req.posUser?.role === "ADMIN" && branchId) ? (branchId as string) : req.posBranchId;
 
       const where: any = {};
+
+      if (targetBranchId) {
+        where.branchId = targetBranchId;
+      }
 
       if (status) {
         where.status = status as CafeOrderStatus;
