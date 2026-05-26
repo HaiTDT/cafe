@@ -4,30 +4,39 @@ import { prisma } from "../lib/prisma";
 export const posAnalyticsController = {
   async getDashboard(req: Request, res: Response) {
     try {
-      const { branchId } = req.query;
+      const { branchId, startDate, endDate } = req.query;
       const targetBranchId = branchId as string || req.posBranchId;
 
       if (!targetBranchId) {
         return res.status(400).json({ message: "Vui lòng chỉ định chi nhánh báo cáo" });
       }
 
-      const now = new Date();
-      
-      // Tính thời gian bắt đầu và kết thúc của hôm nay (múi giờ local Việt Nam +7)
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      // --- Xác định khoảng thời gian lọc ---
+      let start: Date;
+      let end: Date;
 
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+      if (startDate && endDate) {
+        // Client truyền khoảng thời gian tùy chỉnh
+        start = new Date(startDate as string);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        // Mặc định: hôm nay
+        start = new Date();
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+        end.setHours(23, 59, 59, 999);
+      }
 
-      // 1. Doanh thu hôm nay (chỉ tính hóa đơn PAID)
-      const todayOrders = await prisma.cafeOrder.findMany({
+      // 1. Doanh thu theo kỳ (chỉ tính hóa đơn PAID)
+      const periodOrders = await prisma.cafeOrder.findMany({
         where: {
           status: "PAID",
           branchId: targetBranchId,
           createdAt: {
-            gte: startOfDay,
-            lte: endOfDay
+            gte: start,
+            lte: end
           }
         },
         include: {
@@ -35,16 +44,16 @@ export const posAnalyticsController = {
         }
       });
 
-      const todayRevenue = todayOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
-      const todayOrdersCount = todayOrders.length;
-      const todayAOV = todayOrdersCount > 0 ? todayRevenue / todayOrdersCount : 0;
+      const periodRevenue = periodOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
+      const periodOrdersCount = periodOrders.length;
+      const periodAOV = periodOrdersCount > 0 ? periodRevenue / periodOrdersCount : 0;
 
-      // 2. Doanh thu theo phương thức thanh toán
-      const todayPayments = await prisma.payment.findMany({
+      // 2. Doanh thu theo phương thức thanh toán trong kỳ
+      const periodPayments = await prisma.payment.findMany({
         where: {
           createdAt: {
-            gte: startOfDay,
-            lte: endOfDay
+            gte: start,
+            lte: end
           },
           order: {
             status: "PAID",
@@ -60,19 +69,23 @@ export const posAnalyticsController = {
         CARD: 0
       };
 
-      todayPayments.forEach(payment => {
+      periodPayments.forEach(payment => {
         const method = payment.paymentMethod;
         if (method in revenueByMethod) {
           revenueByMethod[method] += Number(payment.amount);
         }
       });
 
-      // 3. Top món bán chạy nhất
+      // 3. Top món bán chạy nhất trong kỳ
       const paidOrderItems = await prisma.cafeOrderItem.findMany({
         where: {
           order: {
             status: "PAID",
-            branchId: targetBranchId
+            branchId: targetBranchId,
+            createdAt: {
+              gte: start,
+              lte: end
+            }
           }
         },
         select: {
@@ -99,11 +112,15 @@ export const posAnalyticsController = {
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 5);
 
-      // 4. Danh sách 5 hóa đơn thanh toán gần đây nhất
+      // 4. Danh sách 5 hóa đơn thanh toán gần đây nhất trong kỳ
       const recentOrders = await prisma.cafeOrder.findMany({
         where: {
           status: "PAID",
-          branchId: targetBranchId
+          branchId: targetBranchId,
+          createdAt: {
+            gte: start,
+            lte: end
+          }
         },
         include: {
           table: true,
@@ -115,10 +132,36 @@ export const posAnalyticsController = {
         take: 5
       });
 
+      // 5. Doanh thu tháng hiện tại (luôn cố định theo tháng thực)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const endOfMonth = new Date();
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      endOfMonth.setDate(0);
+      endOfMonth.setHours(23, 59, 59, 999);
+
+      const monthOrders = await prisma.cafeOrder.findMany({
+        where: {
+          status: "PAID",
+          branchId: targetBranchId,
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth
+          }
+        },
+        select: {
+          totalAmount: true
+        }
+      });
+      const monthRevenue = monthOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
+
       return res.json({
-        todayRevenue,
-        todayOrdersCount,
-        todayAOV,
+        periodRevenue,
+        periodOrdersCount,
+        periodAOV,
+        monthRevenue,
         revenueByMethod,
         topProducts,
         recentOrders: recentOrders.map(order => ({
@@ -127,7 +170,11 @@ export const posAnalyticsController = {
           totalAmount: order.totalAmount,
           paymentMethod: order.payments[0]?.paymentMethod || "CASH",
           payTime: order.updatedAt
-        }))
+        })),
+        // backward compat
+        todayRevenue: periodRevenue,
+        todayOrdersCount: periodOrdersCount,
+        todayAOV: periodAOV,
       });
     } catch (error) {
       console.error("Get POS dashboard analytics error:", error);

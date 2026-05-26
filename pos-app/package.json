@@ -14,6 +14,7 @@
     "expo-router": "~6.0.23",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.17",
     "expo-web-browser": "~15.0.11",
     "lucide-react-native": "^0.475.0",
     "react": "19.1.0",

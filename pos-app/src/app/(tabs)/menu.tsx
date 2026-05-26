@@ -10,12 +10,14 @@ import {
   Image,
   Switch,
   SafeAreaView,
+  useWindowDimensions,
 } from 'react-native';
 import { posApi, CafeProduct, CafeCategory, formatPrice } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import { Search, Coffee, ClipboardList, AlertCircle, ShoppingBag } from 'lucide-react-native';
 
 export default function MenuScreen() {
+  const { width } = useWindowDimensions();
   const [products, setProducts] = useState<CafeProduct[]>([]);
   const [categories, setCategories] = useState<CafeCategory[]>([]);
   
@@ -142,7 +144,7 @@ export default function MenuScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, width >= 768 && { paddingLeft: 240 }]}>
       {/* Search Bar */}
       <View style={styles.searchHeader}>
         <View style={styles.searchWrapper}>
@@ -199,10 +201,11 @@ export default function MenuScreen() {
         </View>
       ) : (
         <FlatList
+          key={`grid-${width < 600 ? 2 : width < 900 ? 3 : 4}`}
           data={filteredProducts}
           renderItem={renderProductItem}
           keyExtractor={item => item.id}
-          numColumns={2}
+          numColumns={width < 600 ? 2 : width < 900 ? 3 : 4}
           contentContainerStyle={styles.listContainer}
           columnWrapperStyle={styles.listRow}
         />

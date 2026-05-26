@@ -49,6 +49,12 @@
         "projectId": "f8c7075d-5945-4b89-a809-777d0922ebc8"
       }
     },
-    "owner": "ngochaitdt"
+    "owner": "ngochaitdt",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f8c7075d-5945-4b89-a809-777d0922ebc8"
+    }
   }
 }

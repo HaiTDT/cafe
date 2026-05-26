@@ -11,10 +11,12 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { posApi, CafeProduct, CafeCategory, CafeOrder, PaymentMethod, formatPrice, ApiError } from '@/lib/api';
 import { ChevronLeft, Plus, Minus, Trash2, CreditCard, DollarSign, Wallet, QrCode, CheckCircle2, ShoppingBag } from 'lucide-react-native';
+import ScaleButton from '@/components/ScaleButton';
 
 interface CartItem {
   productId: string;
@@ -25,6 +27,7 @@ interface CartItem {
 }
 
 export default function OrderScreen() {
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const { tableId, tableName, tableStatus } = useLocalSearchParams<{
     tableId: string;
@@ -125,6 +128,38 @@ export default function OrderScreen() {
     }
   }, [customerMoney, totalAmount]);
 
+  // Tự động lưu bill (lưu trong nền)
+  const performAutoSave = async (items: CartItem[]) => {
+    if (items.length === 0 && !activeOrder) return;
+
+    try {
+      const payload = items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        notes: item.notes || undefined,
+      }));
+
+      if (activeOrder) {
+        // Cập nhật bill
+        const updated = await posApi.updateOrderItems(activeOrder.id, { items: payload });
+        setActiveOrder(updated);
+      } else {
+        // Tạo bill mới
+        const created = await posApi.createOrder({
+          tableId,
+          items: payload,
+        });
+        setActiveOrder(created);
+      }
+      setToastMsg('Đã tự động lưu bill');
+      setTimeout(() => setToastMsg(''), 1200);
+    } catch (err: any) {
+      console.error('Lỗi tự động lưu:', err);
+      setToastMsg('Lỗi lưu tự động!');
+      setTimeout(() => setToastMsg(''), 1500);
+    }
+  };
+
   // Thêm món vào giỏ hàng
   const handleAddProduct = (product: CafeProduct) => {
     if (!product.isAvailable) {
@@ -132,46 +167,51 @@ export default function OrderScreen() {
       return;
     }
 
-    setCartItems(prev => {
-      const existing = prev.find(item => item.productId === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      } else {
-        return [
-          ...prev,
-          {
-            productId: product.id,
-            productName: product.name,
-            unitPrice: Number(product.price),
-            quantity: 1,
-            notes: '',
-          },
-        ];
-      }
-    });
+    let updatedItems: CartItem[] = [];
+    const existing = cartItems.find(item => item.productId === product.id);
+    if (existing) {
+      updatedItems = cartItems.map(item =>
+        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      );
+    } else {
+      updatedItems = [
+        ...cartItems,
+        {
+          productId: product.id,
+          productName: product.name,
+          unitPrice: Number(product.price),
+          quantity: 1,
+          notes: '',
+        },
+      ];
+    }
+
+    setCartItems(updatedItems);
+    performAutoSave(updatedItems);
 
     setToastMsg(`Đã thêm ${product.name}`);
-    setTimeout(() => setToastMsg(''), 1500);
+    setTimeout(() => setToastMsg(''), 1200);
   };
 
   // Cập nhật số lượng
   const updateQuantity = (productId: string, delta: number) => {
-    setCartItems(prev => {
-      return prev.map(item => {
-        if (item.productId === productId) {
-          const newQty = item.quantity + delta;
-          return { ...item, quantity: newQty > 0 ? newQty : 1 };
-        }
-        return item;
-      });
+    const updatedItems = cartItems.map(item => {
+      if (item.productId === productId) {
+        const newQty = item.quantity + delta;
+        return { ...item, quantity: newQty > 0 ? newQty : 1 };
+      }
+      return item;
     });
+
+    setCartItems(updatedItems);
+    performAutoSave(updatedItems);
   };
 
   // Xóa món khỏi giỏ hàng
   const handleRemoveItem = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.productId !== productId));
+    const updatedItems = cartItems.filter(item => item.productId !== productId);
+    setCartItems(updatedItems);
+    performAutoSave(updatedItems);
   };
 
   // Cập nhật ghi chú
@@ -245,9 +285,7 @@ export default function OrderScreen() {
       await posApi.payOrder(orderId, { paymentMethod });
       
       setShowPayModal(false);
-      Alert.alert('Thành công', 'Đã thanh toán hóa đơn thành công!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+      router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Lỗi thanh toán:', err);
       Alert.alert('Thất bại', err.message || 'Lỗi khi thực hiện thanh toán.');
@@ -255,6 +293,162 @@ export default function OrderScreen() {
       setActionLoading(false);
     }
   };
+
+  const renderBillSection = () => (
+    <View style={{ flex: 1 }}>
+      {cartItems.length === 0 ? (
+        <View style={styles.emptyCartContainer}>
+          <ShoppingBag color="#b0bec5" size={48} />
+          <Text style={styles.emptyCartText}>
+            {width >= 768 
+              ? 'Chưa gọi món nào. Vui lòng chọn món ở danh mục bên cạnh.' 
+              : 'Chưa gọi món nào. Vui lòng chuyển sang tab "Thêm Món".'}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={cartItems}
+          keyExtractor={item => item.productId}
+          contentContainerStyle={{ padding: 12 }}
+          renderItem={({ item }) => (
+            <View style={styles.cartItemRow}>
+              <View style={styles.cartItemHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cartItemName}>{item.productName}</Text>
+                  <Text style={styles.cartItemPrice}>{formatPrice(item.unitPrice)}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.deleteItemBtn}
+                  onPress={() => handleRemoveItem(item.productId)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Trash2 color="#c62828" size={20} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Quantity Selector & Notes Input */}
+              <View style={styles.cartItemFooter}>
+                <TextInput
+                  style={styles.cartItemNotes}
+                  placeholder="Ghi chú (ít đá, nhiều đường...)"
+                  placeholderTextColor="#a1887f"
+                  value={item.notes}
+                  onChangeText={(text) => handleUpdateNotes(item.productId, text)}
+                  onBlur={() => performAutoSave(cartItems)}
+                />
+
+                <View style={styles.qtyContainer}>
+                  <TouchableOpacity 
+                    style={styles.qtyBtn}
+                    onPress={() => updateQuantity(item.productId, -1)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Minus color="#5d4037" size={16} />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.quantity}</Text>
+                  <TouchableOpacity 
+                    style={styles.qtyBtn}
+                    onPress={() => updateQuantity(item.productId, 1)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Plus color="#5d4037" size={16} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        />
+      )}
+
+      {/* Total Footer Controls */}
+      {cartItems.length > 0 && (
+        <View style={styles.footerContainer}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>TỔNG TẠM TÍNH:</Text>
+            <Text style={styles.totalPriceVal}>{formatPrice(totalAmount)}</Text>
+          </View>
+
+          <View style={styles.actionRow}>
+            <ScaleButton
+              style={[styles.actionBtn, styles.payBtn, { height: 56, flex: 1 }]}
+              onPress={() => setShowPayModal(true)}
+              disabled={actionLoading}
+            >
+              <Text style={[styles.actionBtnText, { color: '#ffffff', fontSize: 16, letterSpacing: 1 }]}>
+                TIẾN HÀNH THANH TOÁN
+              </Text>
+            </ScaleButton>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderMenuSection = () => (
+    <View style={{ flex: 1 }}>
+      {/* Search Input inside Catalog tab */}
+      <View style={styles.menuSearchWrapper}>
+        <TextInput
+          style={styles.menuSearchInput}
+          placeholder="Tìm món gọi nhanh..."
+          placeholderTextColor="#a1887f"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {/* Category tabs scroll */}
+      <View style={styles.menuCatBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 4, gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.menuCatTab, selectedCategoryId === 'all' && styles.menuCatTabActive]}
+            onPress={() => setSelectedCategoryId('all')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.menuCatTabText, selectedCategoryId === 'all' && styles.menuCatTabTextActive]}>Tất cả</Text>
+          </TouchableOpacity>
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.menuCatTab, selectedCategoryId === cat.id && styles.menuCatTabActive]}
+              onPress={() => setSelectedCategoryId(cat.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.menuCatTabText, selectedCategoryId === cat.id && styles.menuCatTabTextActive]}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Products grid */}
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 12 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.catalogItemRow, !item.isAvailable && styles.catalogItemUnavailable]}
+            onPress={() => handleAddProduct(item)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.catalogItemName}>{item.name}</Text>
+              <Text style={styles.catalogItemPrice}>{formatPrice(item.price)}</Text>
+            </View>
+            <View style={styles.catalogItemAction}>
+              {item.isAvailable ? (
+                <View style={styles.catalogAddBtn}>
+                  <Plus color="#ffffff" size={16} />
+                </View>
+              ) : (
+                <Text style={styles.catalogSoldOutText}>HẾT MÓN</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
 
   if (loading) {
     return (
@@ -281,181 +475,52 @@ export default function OrderScreen() {
         ) : null}
       </View>
 
-      {/* Segmented Control Tabs */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'bill' && styles.tabActive]}
-          onPress={() => setActiveTab('bill')}
-        >
-          <Text style={[styles.tabText, activeTab === 'bill' && styles.tabTextActive]}>
-            Hóa Đơn ({cartItems.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'menu' && styles.tabActive]}
-          onPress={() => setActiveTab('menu')}
-        >
-          <Text style={[styles.tabText, activeTab === 'menu' && styles.tabTextActive]}>
-            Thêm Món
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Segmented Control Tabs (Only visible on Phones) */}
+      {width < 768 && (
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'bill' && styles.tabActive]}
+            onPress={() => setActiveTab('bill')}
+          >
+            <Text style={[styles.tabText, activeTab === 'bill' && styles.tabTextActive]}>
+              Hóa Đơn ({cartItems.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'menu' && styles.tabActive]}
+            onPress={() => setActiveTab('menu')}
+          >
+            <Text style={[styles.tabText, activeTab === 'menu' && styles.tabTextActive]}>
+              Thêm Món
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* TAB Content */}
-      <View style={styles.content}>
-        
-        {/* TAB 1: BILL DETAIL */}
-        {activeTab === 'bill' ? (
-          <View style={{ flex: 1 }}>
-            {cartItems.length === 0 ? (
-              <View style={styles.emptyCartContainer}>
-                <ShoppingBag color="#b0bec5" size={48} />
-                <Text style={styles.emptyCartText}>Chưa gọi món nào. Vui lòng chuyển sang tab "Thêm Món".</Text>
+      {/* TAB / Split-Screen Content */}
+      <View style={[styles.content, width >= 768 && styles.tabletContentContainer]}>
+        {width >= 768 ? (
+          <>
+            {/* Left Side: BILL DETAIL */}
+            <View style={styles.tabletBillSection}>
+              <View style={styles.sectionHeaderContainer}>
+                <Text style={styles.sectionHeaderText}>CHI TIẾT HÓA ĐƠN</Text>
               </View>
-            ) : (
-              <FlatList
-                data={cartItems}
-                keyExtractor={item => item.productId}
-                contentContainerStyle={{ padding: 12 }}
-                renderItem={({ item }) => (
-                  <View style={styles.cartItemRow}>
-                    <View style={styles.cartItemHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.cartItemName}>{item.productName}</Text>
-                        <Text style={styles.cartItemPrice}>{formatPrice(item.unitPrice)}</Text>
-                      </View>
-                      <TouchableOpacity 
-                        style={styles.deleteItemBtn}
-                        onPress={() => handleRemoveItem(item.productId)}
-                      >
-                        <Trash2 color="#c62828" size={18} />
-                      </TouchableOpacity>
-                    </View>
+              {renderBillSection()}
+            </View>
 
-                    {/* Quantity Selector & Notes Input */}
-                    <View style={styles.cartItemFooter}>
-                      <TextInput
-                        style={styles.cartItemNotes}
-                        placeholder="Ghi chú (ít đá, nhiều đường...)"
-                        placeholderTextColor="#a1887f"
-                        value={item.notes}
-                        onChangeText={(text) => handleUpdateNotes(item.productId, text)}
-                      />
-
-                      <View style={styles.qtyContainer}>
-                        <TouchableOpacity 
-                          style={styles.qtyBtn}
-                          onPress={() => updateQuantity(item.productId, -1)}
-                        >
-                          <Minus color="#5d4037" size={14} />
-                        </TouchableOpacity>
-                        <Text style={styles.qtyText}>{item.quantity}</Text>
-                        <TouchableOpacity 
-                          style={styles.qtyBtn}
-                          onPress={() => updateQuantity(item.productId, 1)}
-                        >
-                          <Plus color="#5d4037" size={14} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              />
-            )}
-
-            {/* Total Footer Controls */}
-            {cartItems.length > 0 && (
-              <View style={styles.footerContainer}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>TỔNG TẠM TÍNH:</Text>
-                  <Text style={styles.totalPriceVal}>{formatPrice(totalAmount)}</Text>
-                </View>
-
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, styles.saveBtn, actionLoading && styles.disabledBtn]}
-                    onPress={() => handleSaveOrder()}
-                    disabled={actionLoading}
-                  >
-                    <Text style={styles.actionBtnText}>LƯU BILL</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionBtn, styles.payBtn, actionLoading && styles.disabledBtn]}
-                    onPress={() => setShowPayModal(true)}
-                    disabled={actionLoading}
-                  >
-                    <Text style={[styles.actionBtnText, { color: '#ffffff' }]}>THANH TOÁN</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Right Side: MENU CATALOG */}
+            <View style={styles.tabletMenuSection}>
+              <View style={styles.sectionHeaderContainer}>
+                <Text style={styles.sectionHeaderText}>THỰC ĐƠN GỌI MÓN</Text>
               </View>
-            )}
-          </View>
+              {renderMenuSection()}
+            </View>
+          </>
         ) : (
-          /* TAB 2: MENU CATALOG */
-          <View style={{ flex: 1 }}>
-            {/* Search Input inside Catalog tab */}
-            <View style={styles.menuSearchWrapper}>
-              <TextInput
-                style={styles.menuSearchInput}
-                placeholder="Tìm món gọi nhanh..."
-                placeholderTextColor="#a1887f"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-
-            {/* Category tabs scroll */}
-            <View style={styles.menuCatBar}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
-                <TouchableOpacity
-                  style={[styles.menuCatTab, selectedCategoryId === 'all' && styles.menuCatTabActive]}
-                  onPress={() => setSelectedCategoryId('all')}
-                >
-                  <Text style={[styles.menuCatTabText, selectedCategoryId === 'all' && styles.menuCatTabTextActive]}>Tất cả</Text>
-                </TouchableOpacity>
-                {categories.map(cat => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[styles.menuCatTab, selectedCategoryId === cat.id && styles.menuCatTabActive]}
-                    onPress={() => setSelectedCategoryId(cat.id)}
-                  >
-                    <Text style={[styles.menuCatTabText, selectedCategoryId === cat.id && styles.menuCatTabTextActive]}>{cat.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* Products grid */}
-            <FlatList
-              data={filteredProducts}
-              keyExtractor={item => item.id}
-              contentContainerStyle={{ padding: 12 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.catalogItemRow, !item.isAvailable && styles.catalogItemUnavailable]}
-                  onPress={() => handleAddProduct(item)}
-                  activeOpacity={0.7}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.catalogItemName}>{item.name}</Text>
-                    <Text style={styles.catalogItemPrice}>{formatPrice(item.price)}</Text>
-                  </View>
-                  <View style={styles.catalogItemAction}>
-                    {item.isAvailable ? (
-                      <View style={styles.catalogAddBtn}>
-                        <Plus color="#ffffff" size={16} />
-                      </View>
-                    ) : (
-                      <Text style={styles.catalogSoldOutText}>HẾT MÓN</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+          /* Phone Mode: Single tab rendering */
+          activeTab === 'bill' ? renderBillSection() : renderMenuSection()
         )}
-
       </View>
 
       {/* Checkout Modal */}
@@ -465,8 +530,8 @@ export default function OrderScreen() {
         transparent={true}
         onRequestClose={() => setShowPayModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, width >= 768 && styles.tabletModalOverlay]}>
+          <View style={[styles.modalContent, width >= 768 && styles.tabletModalContent]}>
             <Text style={styles.modalTitle}>XÁC NHẬN THANH TOÁN</Text>
             
             <View style={styles.modalTotalBox}>
@@ -537,13 +602,13 @@ export default function OrderScreen() {
                 <Text style={styles.modalCloseBtnText}>HỦY BỎ</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <ScaleButton
                 style={[styles.modalBtn, styles.modalConfirmBtn]}
                 onPress={handlePayOrder}
                 disabled={actionLoading}
               >
                 <Text style={styles.modalConfirmBtnText}>HOÀN TẤT</Text>
-              </TouchableOpacity>
+              </ScaleButton>
             </View>
 
           </View>
@@ -963,5 +1028,64 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 13,
+  },
+  tabletContentContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 16,
+  },
+  tabletBillSection: {
+    flex: 4,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#efebe9',
+    overflow: 'hidden',
+    shadowColor: '#5d4037',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  tabletMenuSection: {
+    flex: 6,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#efebe9',
+    overflow: 'hidden',
+    shadowColor: '#5d4037',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  sectionHeaderContainer: {
+    backgroundColor: '#efebe9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#d7ccc8',
+  },
+  sectionHeaderText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#3e2723',
+    letterSpacing: 1,
+  },
+  tabletModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(62, 39, 35, 0.5)',
+  },
+  tabletModalContent: {
+    width: 500,
+    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
 });

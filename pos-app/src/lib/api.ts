@@ -114,9 +114,12 @@ export interface CafeOrder {
 }
 
 export interface PosDashboardData {
-  todayRevenue: number;
-  todayOrdersCount: number;
-  todayAOV: number;
+  // Period (filtered)
+  periodRevenue: number;
+  periodOrdersCount: number;
+  periodAOV: number;
+  // Always current month
+  monthRevenue: number;
   revenueByMethod: {
     CASH: number;
     BANK_TRANSFER: number;
@@ -135,6 +138,10 @@ export interface PosDashboardData {
     paymentMethod: PaymentMethod;
     payTime: string;
   }>;
+  // backward compat
+  todayRevenue: number;
+  todayOrdersCount: number;
+  todayAOV: number;
 }
 
 // --- API Helper ---
@@ -326,8 +333,12 @@ export const posApi = {
   },
 
   // Analytics (Admin only)
-  getDashboardAnalytics() {
-    return posApiRequest<PosDashboardData>('/api/pos/analytics/dashboard');
+  getDashboardAnalytics(params: { startDate?: string; endDate?: string } = {}) {
+    const query = new URLSearchParams();
+    if (params.startDate) query.set('startDate', params.startDate);
+    if (params.endDate) query.set('endDate', params.endDate);
+    const queryString = query.toString();
+    return posApiRequest<PosDashboardData>(`/api/pos/analytics/dashboard${queryString ? '?' + queryString : ''}`);
   },
 
   // Branches CRUD

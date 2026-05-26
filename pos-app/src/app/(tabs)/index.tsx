@@ -9,6 +9,7 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { posApi, CafeTable, CafeOrder } from '@/lib/api';
@@ -47,11 +48,15 @@ function TableTimer({ startTime }: { startTime: string }) {
 }
 
 export default function TablesScreen() {
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const [tables, setTables] = useState<CafeTable[]>([]);
   const [activeOrders, setActiveOrders] = useState<CafeOrder[]>([]);
   const [branchName, setBranchName] = useState('Đang tải...');
   const [staffName, setStaffName] = useState('');
+  
+  // Tính số lượng cột động
+  const numColumns = width < 600 ? 2 : width < 900 ? 4 : 5;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -181,7 +186,7 @@ export default function TablesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, width >= 768 && { paddingLeft: 240 }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header Info */}
@@ -214,10 +219,11 @@ export default function TablesScreen() {
         </View>
       ) : (
         <FlatList
+          key={`grid-${numColumns}`}
           data={tables}
           renderItem={renderTableCard}
           keyExtractor={item => item.id}
-          numColumns={2}
+          numColumns={numColumns}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.gridRow}
           refreshControl={
