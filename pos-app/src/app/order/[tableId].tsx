@@ -309,7 +309,27 @@ export default function OrderScreen() {
         <FlatList
           data={cartItems}
           keyExtractor={item => item.productId}
-          contentContainerStyle={{ padding: 12 }}
+          contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+          ListFooterComponent={
+            <View style={[styles.footerContainer, { borderRadius: 12, borderWidth: 1, borderTopWidth: 1, marginTop: 4 }]}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>TỔNG TẠM TÍNH:</Text>
+                <Text style={styles.totalPriceVal}>{formatPrice(totalAmount)}</Text>
+              </View>
+
+              <View style={styles.actionRow}>
+                <ScaleButton
+                  style={[styles.actionBtn, styles.payBtn, { height: 56, flex: 1 }]}
+                  onPress={() => setShowPayModal(true)}
+                  disabled={actionLoading}
+                >
+                  <Text style={[styles.actionBtnText, { color: '#ffffff', fontSize: 16, letterSpacing: 1 }]}>
+                    TIẾN HÀNH THANH TOÁN
+                  </Text>
+                </ScaleButton>
+              </View>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.cartItemRow}>
               <View style={styles.cartItemHeader}>
@@ -358,28 +378,6 @@ export default function OrderScreen() {
             </View>
           )}
         />
-      )}
-
-      {/* Total Footer Controls */}
-      {cartItems.length > 0 && (
-        <View style={styles.footerContainer}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TỔNG TẠM TÍNH:</Text>
-            <Text style={styles.totalPriceVal}>{formatPrice(totalAmount)}</Text>
-          </View>
-
-          <View style={styles.actionRow}>
-            <ScaleButton
-              style={[styles.actionBtn, styles.payBtn, { height: 56, flex: 1 }]}
-              onPress={() => setShowPayModal(true)}
-              disabled={actionLoading}
-            >
-              <Text style={[styles.actionBtnText, { color: '#ffffff', fontSize: 16, letterSpacing: 1 }]}>
-                TIẾN HÀNH THANH TOÁN
-              </Text>
-            </ScaleButton>
-          </View>
-        </View>
       )}
     </View>
   );

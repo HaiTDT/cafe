@@ -1,4 +1,4 @@
-import { API_BASE_URL, ApiError, formatPrice } from "./api";
+import { ApiError, formatPrice } from "./api";
 
 // --- POS TYPES ---
 
@@ -141,6 +141,8 @@ export const posTokenStore = {
 
 // --- POS API REQ HELPER ---
 
+export const POS_API_BASE_URL = "https://haulecoffee.onrender.com";
+
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
@@ -169,13 +171,13 @@ async function posApiRequest<T>(path: string, options: RequestOptions = {}): Pro
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${POS_API_BASE_URL}${path}`, {
       ...options,
       headers,
       body
     });
   } catch (err) {
-    throw new ApiError(`Không thể kết nối đến máy chủ POS tại ${API_BASE_URL}.`, 0);
+    throw new ApiError(`Không thể kết nối đến máy chủ POS tại ${POS_API_BASE_URL}.`, 0);
   }
 
   if (response.status === 204) {

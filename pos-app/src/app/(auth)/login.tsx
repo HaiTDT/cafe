@@ -363,7 +363,7 @@ export default function LoginScreen() {
 
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="https://mis-hasaki.onrender.com"
+                  placeholder="https://haulecoffee.onrender.com"
                   value={serverUrl}
                   onChangeText={setServerUrl}
                   autoCapitalize="none"
