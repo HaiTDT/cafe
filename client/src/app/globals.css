@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @tailwind base;
@@ -6,16 +6,17 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
   scroll-behavior: smooth;
+  background-color: #0A0A0A;
 }
 
 body {
   margin: 0;
-  @apply bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed;
+  @apply bg-background text-on-surface font-body selection:bg-primary/30 selection:text-white;
 }
 
 .material-symbols-outlined {
@@ -23,14 +24,15 @@ body {
 }
 
 .glass-nav {
-  background: rgba(249, 249, 249, 0.8);
+  background: rgba(10, 10, 10, 0.8);
   backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .cta-gradient {
-  background: linear-gradient(135deg, #9d4300 0%, #fd761a 100%);
+  background: linear-gradient(135deg, #4A3B12 0%, #D4AF37 100%);
 }
 
 .organic-shadow {
-  box-shadow: 0 32px 64px -12px rgba(0, 80, 47, 0.06);
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.5);
 }
