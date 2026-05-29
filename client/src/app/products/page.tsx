@@ -121,16 +121,16 @@ function ProductsContent() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-12">
-        <div className="relative flex flex-col items-center overflow-hidden rounded-xl bg-surface-container-low p-6 text-center md:p-20">
-          <h1 className="font-headline mb-4 text-4xl font-extrabold tracking-tight text-primary md:text-5xl">
+      <section className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-12 relative z-10">
+        <div className="relative flex flex-col items-center overflow-hidden rounded-xl bg-luxury-surface/50 border border-white/5 backdrop-blur-md p-6 text-center md:p-20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+          <h1 className="font-headline mb-4 text-4xl font-medium tracking-tight text-luxury-primary md:text-5xl">
             {filters.isFlashSale
               ? "🔥 Khuyến Mãi Flash Sale"
               : filters.categoryId
               ? allCategories.find(c => c.id === filters.categoryId)?.name || "Danh mục"
               : "Tất cả sản phẩm"}
           </h1>
-          <p className="max-w-2xl leading-relaxed text-on-surface-variant">
+          <p className="max-w-2xl leading-relaxed text-luxury-text-variant font-light">
             {filters.isFlashSale
               ? "Ưu đãi có hạn – Nhanh tay kẻo lỡ!"
               : filters.categoryId
@@ -140,17 +140,17 @@ function ProductsContent() {
         </div>
       </section>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pb-24">
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pb-24 relative z-10">
         <section className="flex-1">
-          <div className="mb-8 grid gap-3 rounded-xl bg-surface-container-lowest p-4 shadow-sm sm:grid-cols-[1fr_180px_140px]">
+          <div className="mb-8 grid gap-3 rounded-xl bg-luxury-surface/50 border border-white/5 backdrop-blur-md p-4 shadow-[0_5px_15px_rgba(0,0,0,0.3)] sm:grid-cols-[1fr_180px_140px]">
             <input
-              className="rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm focus:ring-primary text-on-surface"
+              className="rounded-lg border border-luxury-border bg-luxury-surface px-4 py-3 text-sm focus:ring-1 focus:ring-luxury-primary focus:outline-none text-luxury-text"
               onChange={(event) => updateFilters({ search: event.target.value })}
               placeholder="Tìm cà phê, trà sữa, bánh ngọt..."
               value={filters.search}
             />
             <select
-              className="rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm focus:ring-primary text-on-surface"
+              className="rounded-lg border border-luxury-border bg-luxury-surface px-4 py-3 text-sm focus:ring-1 focus:ring-luxury-primary focus:outline-none text-luxury-text"
               onChange={(event) => updateFilters({ sort: event.target.value })}
               value={filters.sort}
             >
@@ -159,7 +159,7 @@ function ProductsContent() {
               <option value="price_desc">Giá giảm dần</option>
             </select>
             <button
-              className="rounded-lg border border-outline-variant px-4 py-3 text-sm font-semibold text-primary hover:bg-stone-100 transition-colors"
+              className="rounded-lg border border-luxury-border px-4 py-3 text-sm font-semibold text-luxury-text-variant hover:text-luxury-primary hover:border-luxury-primary transition-colors"
               onClick={() => setFilters({
                 search: "",
                 categoryId: "",
@@ -179,10 +179,10 @@ function ProductsContent() {
           <ErrorMessage message={error} />
 
           <div className="mb-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-sm text-luxury-text-variant">
               {loading ? "Đang tải sản phẩm..." : `${meta.total} sản phẩm`}
             </p>
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-sm text-luxury-text-variant">
               Trang {meta.page} / {meta.totalPages}
             </p>
           </div>
@@ -190,11 +190,11 @@ function ProductsContent() {
           {loading ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((item) => (
-                <div className="h-[250px] sm:h-[350px] animate-pulse rounded-xl bg-surface-container-low" key={item} />
+                <div className="h-[250px] sm:h-[350px] animate-pulse rounded-xl bg-luxury-surface/50 border border-white/5" key={item} />
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-12 text-center text-on-surface-variant">
+            <div className="rounded-xl border border-dashed border-luxury-border bg-luxury-surface/30 p-12 text-center text-luxury-text-variant backdrop-blur-md">
               Không tìm thấy sản phẩm phù hợp.
             </div>
           ) : (
@@ -207,19 +207,19 @@ function ProductsContent() {
 
           <div className="mt-20 flex items-center justify-center gap-2">
             <button
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-all hover:bg-stone-200 disabled:opacity-40"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-luxury-primary transition-all hover:bg-luxury-surface border border-transparent hover:border-luxury-border disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-transparent"
               disabled={meta.page <= 1}
               onClick={() => updateFilters({ page: meta.page - 1 })}
               type="button"
             >
               <span className="material-symbols-outlined">chevron_left</span>
             </button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary font-bold text-white">
+            <button className="flex h-10 w-10 items-center justify-center rounded-lg bg-luxury-primary font-bold text-luxury-bg shadow-[0_0_15px_rgba(212,175,55,0.3)]">
               {meta.page}
             </button>
             {meta.page + 1 <= meta.totalPages && (
               <button
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-200 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-luxury-text-variant hover:text-luxury-primary hover:bg-luxury-surface border border-transparent hover:border-luxury-border transition-all"
                 onClick={() => updateFilters({ page: meta.page + 1 })}
                 type="button"
               >
@@ -228,7 +228,7 @@ function ProductsContent() {
             )}
             {meta.page + 2 <= meta.totalPages && (
               <button
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-200 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-luxury-text-variant hover:text-luxury-primary hover:bg-luxury-surface border border-transparent hover:border-luxury-border transition-all"
                 onClick={() => updateFilters({ page: meta.page + 2 })}
                 type="button"
               >
@@ -236,7 +236,7 @@ function ProductsContent() {
               </button>
             )}
             <button
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-all hover:bg-stone-200 disabled:opacity-40"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-luxury-primary transition-all hover:bg-luxury-surface border border-transparent hover:border-luxury-border disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-transparent"
               disabled={meta.page >= meta.totalPages}
               onClick={() => updateFilters({ page: meta.page + 1 })}
               type="button"

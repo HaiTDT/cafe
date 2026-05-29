@@ -59,39 +59,39 @@ export function Header() {
 
   return (
     <>
-    <header className="fixed top-0 w-full z-50 bg-white dark:bg-stone-900 backdrop-blur-md shadow-sm border-b border-stone-200 dark:border-stone-800">
+    <header className="fixed top-0 w-full z-50 bg-luxury-bg/90 backdrop-blur-md shadow-sm border-b border-luxury-border/30">
       <div className="flex flex-col w-full max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between gap-4 md:gap-8 mb-3 md:mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 lg:hidden text-emerald-900 dark:text-emerald-50 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors"
+              className="p-2 lg:hidden text-luxury-primary hover:bg-luxury-surface rounded-full transition-colors"
             >
               <span className="material-symbols-outlined">{isMenuOpen ? 'close' : 'menu'}</span>
             </button>
-            <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-emerald-900 dark:text-emerald-50 font-headline">
+            <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-luxury-primary font-headline">
               HẬU LÊ COFFEE
             </Link>
           </div>
 
           <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl relative">
             <input
-              className="w-full bg-surface-variant dark:bg-stone-800 border-none rounded-sm px-4 py-2 text-sm focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition-all"
+              className="w-full bg-luxury-surface border border-luxury-border/50 rounded-sm px-4 py-2 text-sm text-luxury-text focus:ring-1 focus:ring-luxury-primary focus:bg-luxury-surface-low transition-all"
               placeholder="Tìm kiếm đồ uống, bánh ngọt..."
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit" className="material-symbols-outlined absolute right-3 top-2 text-primary hover:scale-110 transition-transform">search</button>
+            <button type="submit" className="material-symbols-outlined absolute right-3 top-2 text-luxury-primary hover:scale-110 transition-transform">search</button>
           </form>
 
           <div className="flex items-center gap-2 md:gap-6">
-            <span className="hidden xl:block text-emerald-900 dark:text-emerald-400 font-medium text-sm">Hotline: 0988 384 767</span>
+            <span className="hidden xl:block text-luxury-primary font-medium text-sm">Hotline: 0988 384 767</span>
             <div className="flex items-center gap-1 md:gap-4">
               {user && (
                 <button
                   onClick={() => router.push("/orders")}
-                  className="p-2 text-emerald-900 dark:text-emerald-50 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all rounded-full relative"
+                  className="p-2 text-luxury-text hover:text-luxury-primary transition-all rounded-full relative"
                   title="Lịch sử đơn hàng"
                 >
                   <span className="material-symbols-outlined text-[20px] md:text-[24px]">receipt_long</span>
@@ -99,18 +99,18 @@ export function Header() {
               )}
               <button
                 onClick={() => router.push("/cart")}
-                className="p-2 text-emerald-900 dark:text-emerald-50 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all rounded-full relative"
+                className="p-2 text-luxury-text hover:text-luxury-primary transition-all rounded-full relative"
               >
                 <span className="material-symbols-outlined text-[20px] md:text-[24px]">shopping_cart</span>
                 {totalItems > 0 && (
-                  <span className="absolute top-1 right-1 bg-secondary text-white text-[9px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-bold">
+                  <span className="absolute top-1 right-1 bg-luxury-primary text-luxury-bg text-[9px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-bold">
                     {totalItems}
                   </span>
                 )}
               </button>
               {isPosAuthorized && (
                 <Link
-                  className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-bold text-white bg-amber-700 px-2 md:px-3 py-1.5 rounded-full hover:bg-amber-800 transition-colors"
+                  className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-bold text-luxury-bg bg-luxury-primary px-2 md:px-3 py-1.5 rounded-full hover:bg-luxury-primary/90 transition-colors"
                   href="/pos"
                 >
                   <span className="material-symbols-outlined text-[14px] md:text-[16px]">storefront</span>
@@ -119,7 +119,7 @@ export function Header() {
               )}
               {user?.role === "ADMIN" && (
                 <Link
-                  className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-bold text-white bg-primary px-2 md:px-3 py-1.5 rounded-full hover:bg-primary/90 transition-colors"
+                  className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-bold text-luxury-bg bg-luxury-primary px-2 md:px-3 py-1.5 rounded-full hover:bg-luxury-primary/90 transition-colors"
                   href="/admin"
                 >
                   <span className="material-symbols-outlined text-[14px] md:text-[16px]">admin_panel_settings</span>
@@ -128,7 +128,7 @@ export function Header() {
               )}
               {user ? (
                 <button
-                  className="p-2 text-emerald-900 dark:text-emerald-50 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all rounded-full"
+                  className="p-2 text-luxury-text hover:text-luxury-primary transition-all rounded-full"
                   onClick={() => {
                     logout();
                     router.push("/login");
@@ -139,7 +139,7 @@ export function Header() {
                 </button>
               ) : (
                 <button
-                  className="p-2 text-emerald-900 dark:text-emerald-50 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all rounded-full"
+                  className="p-2 text-luxury-text hover:text-luxury-primary transition-all rounded-full"
                   onClick={() => router.push("/login")}
                   type="button"
                 >
@@ -153,19 +153,19 @@ export function Header() {
         {/* Search Mobile */}
         <form onSubmit={handleSearch} className="md:hidden relative mb-2">
           <input
-            className="w-full bg-stone-100 dark:bg-stone-800 border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary"
+            className="w-full bg-luxury-surface border border-luxury-border/50 rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-luxury-primary text-luxury-text"
             placeholder="Tìm kiếm..."
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button type="submit" className="material-symbols-outlined absolute right-3 top-2 text-primary text-[20px] hover:scale-110 transition-transform">search</button>
+          <button type="submit" className="material-symbols-outlined absolute right-3 top-2 text-luxury-primary text-[20px] hover:scale-110 transition-transform">search</button>
         </form>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center justify-center gap-8">
           <Link
-            className={`py-1 text-sm font-headline transition-colors ${isHome ? "text-emerald-700 border-b-2 border-orange-500 font-semibold" : "text-stone-600 dark:text-stone-400 hover:text-emerald-800"}`}
+            className={`py-1 text-sm font-headline transition-colors ${isHome ? "text-luxury-primary border-b-2 border-luxury-primary font-semibold" : "text-luxury-text hover:text-luxury-primary"}`}
             href="/"
           >
             Trang chủ
@@ -173,14 +173,14 @@ export function Header() {
           {categories.map((category) => (
             <Link
               key={category.id}
-              className={`py-1 text-sm font-headline transition-colors ${activeCategoryId === category.id ? "text-emerald-700 border-b-2 border-orange-500 font-semibold" : "text-stone-600 dark:text-stone-400 hover:text-emerald-800"}`}
+              className={`py-1 text-sm font-headline transition-colors ${activeCategoryId === category.id ? "text-luxury-primary border-b-2 border-luxury-primary font-semibold" : "text-luxury-text hover:text-luxury-primary"}`}
               href={`/products?categoryId=${category.id}`}
             >
               {category.name}
             </Link>
           ))}
           <Link
-            className={`py-1 text-sm font-headline flex items-center gap-1 font-bold transition-colors ${pathname === "/flash-sale" ? "text-orange-700 border-b-2 border-orange-500" : "text-orange-600 hover:text-orange-800"}`}
+            className={`py-1 text-sm font-headline flex items-center gap-1 font-bold transition-colors ${pathname === "/flash-sale" ? "text-luxury-primary border-b-2 border-luxury-primary" : "text-luxury-text-variant hover:text-luxury-primary"}`}
             href="/flash-sale"
           >
             Khuyến mãi <span className="material-symbols-outlined text-[16px]">bolt</span>

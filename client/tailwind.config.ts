@@ -9,50 +9,81 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark Luxury Theme
-        primary: "#D4AF37", // Warm Gold
-        "on-primary": "#111111",
-        "primary-container": "#4A3B12",
-        "on-primary-container": "#FDE047",
-        
-        secondary: "#3E2723", // Wood Brown
-        "on-secondary": "#ffffff",
-        "secondary-container": "#2C1E16",
-        "on-secondary-container": "#D7CCC8",
-        
-        tertiary: "#1C1C1C", // Charcoal
+        rosewood: "#5D4037",
+        sage: "#8D6E63",
+        pearl: "#efebe9",
         "on-tertiary": "#ffffff",
-        "tertiary-container": "#2A2A2A",
-        "on-tertiary-container": "#E0E0E0",
-        
-        background: "#0A0A0A", // Deep Black
-        "on-background": "#F5F5F5",
-        
-        surface: "#111111", // Slightly lighter black for cards
-        "on-surface": "#F5F5F5",
-        "surface-variant": "#1A1A1A",
-        "on-surface-variant": "#B3B3B3",
-        
-        "surface-container-lowest": "#050505",
-        "surface-container-low": "#0D0D0D",
-        "surface-container": "#111111",
-        "surface-container-high": "#1C1C1C",
-        "surface-container-highest": "#262626",
-        
-        outline: "#333333",
-        "outline-variant": "#222222",
-        
-        error: "#CF6679",
-        "on-error": "#000000",
-        "error-container": "#B3261E",
-        "on-error-container": "#F9DEDC",
+        "on-primary": "#ffffff",
+        "on-tertiary-container": "#ffc8c8",
+        "primary-container": "#4e342e",
+        "tertiary-fixed": "#d7ccc8",
+        "surface-container-highest": "#d7ccc8",
+        surface: "#fafafa",
+        "on-secondary-fixed-variant": "#3e2723",
+        "on-background": "#1a1c1c",
+        "on-secondary-container": "#3e2723",
+        error: "#ba1a1a",
+        "secondary-fixed": "#d7ccc8",
+        "on-surface-variant": "#3f4942",
+        "surface-container-high": "#e8e8e8",
+        "secondary-fixed-dim": "#bcaaa4",
+        "primary-fixed-dim": "#8d6e63",
+        primary: "#3e2723", // Dark Brown
+        "on-tertiary-fixed": "#3e030c",
+        "surface-variant": "#e2e2e2",
+        "on-error-container": "#93000a",
+        "error-container": "#ffdad6",
+        "surface-container-lowest": "#ffffff",
+        "on-error": "#ffffff",
+        "on-surface": "#212121", // Almost black
+        "on-primary-fixed-variant": "#3e2723",
+        "secondary-container": "#5d4037",
+        tertiary: "#111111", // Black
+        secondary: "#5d4037", // Brown
+        "tertiary-container": "#212121",
+        background: "#fdfbf7",
+        "outline-variant": "#bec9bf",
+        "on-secondary-fixed": "#341100",
+        "inverse-surface": "#2f3131",
+        "on-primary-fixed": "#111111",
+        "inverse-on-surface": "#f1f1f1",
+        "on-tertiary-fixed-variant": "#111111",
+        "tertiary-fixed-dim": "#8d6e63",
+        "inverse-primary": "#8d6e63",
+        "surface-bright": "#fafafa",
+        "primary-fixed": "#d7ccc8",
+        "surface-container": "#eeeeee",
+        "on-secondary": "#ffffff",
+        outline: "#6f7a71",
+        "on-primary-container": "#d7ccc8",
+        "surface-dim": "#dadada",
+        "surface-container-low": "#f3f3f3",
+        "surface-tint": "#4e342e",
+
+        // Storefront Luxury Theme
+        "luxury-primary": "#D4AF37",
+        "luxury-on-primary": "#111111",
+        "luxury-primary-container": "#4A3B12",
+        "luxury-secondary": "#3E2723",
+        "luxury-bg": "#0A0A0A",
+        "luxury-surface": "#111111",
+        "luxury-surface-low": "#0D0D0D",
+        "luxury-text": "#F5F5F5",
+        "luxury-text-variant": "#B3B3B3",
+        "luxury-border": "#333333",
       },
       backgroundImage: {
         'glass': 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
         'glass-border': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
       },
+      borderRadius: {
+        DEFAULT: "0.125rem",
+        lg: "0.25rem",
+        xl: "0.5rem",
+        full: "0.75rem"
+      },
       fontFamily: {
-        headline: ["Cinzel", "Playfair Display", "serif"],
+        headline: ["Playfair Display", "serif"],
         body: ["Inter", "sans-serif"],
         label: ["Inter", "sans-serif"]
       },
