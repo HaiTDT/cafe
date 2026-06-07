@@ -142,7 +142,14 @@ export default function OrderScreen() {
       if (activeOrder) {
         // Cập nhật bill
         const updated = await posApi.updateOrderItems(activeOrder.id, { items: payload });
-        setActiveOrder(updated);
+        if (updated.status === 'CANCELLED') {
+          setActiveOrder(null);
+          setCartItems([]);
+          setToastMsg('Đã xóa hết món, giải phóng bàn');
+        } else {
+          setActiveOrder(updated);
+          setToastMsg('Đã tự động lưu bill');
+        }
       } else {
         // Tạo bill mới
         const created = await posApi.createOrder({
@@ -150,8 +157,8 @@ export default function OrderScreen() {
           items: payload,
         });
         setActiveOrder(created);
+        setToastMsg('Đã tự động lưu bill');
       }
-      setToastMsg('Đã tự động lưu bill');
       setTimeout(() => setToastMsg(''), 1200);
     } catch (err: any) {
       console.error('Lỗi tự động lưu:', err);

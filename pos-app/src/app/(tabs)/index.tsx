@@ -95,10 +95,10 @@ export default function TablesScreen() {
       setTables(sortedTables);
       setActiveOrders(ordersData);
 
-      // Tạo map tableId -> order createdAt
+      // Tạo map tableId -> order createdAt (chỉ khi có món ăn/uống phục vụ)
       const timesMap: Record<string, string> = {};
       ordersData.forEach(order => {
-        if (order.tableId && order.createdAt) {
+        if (order.tableId && order.createdAt && order.items && order.items.length > 0) {
           timesMap[order.tableId] = order.createdAt;
         }
       });

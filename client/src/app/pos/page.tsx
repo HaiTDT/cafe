@@ -182,10 +182,10 @@ export default function PosPage() {
       setCategories(catsData);
       setProducts(prodsData);
 
-      // Xây dựng map tableId -> order createdAt
+      // Xây dựng map tableId -> order createdAt (chỉ hiển thị khi có món phục vụ)
       const timesMap: Record<string, string> = {};
       activeOrders.forEach(order => {
-        if (order.tableId && order.createdAt) {
+        if (order.tableId && order.createdAt && order.items && order.items.length > 0) {
           timesMap[order.tableId] = order.createdAt;
         }
       });
@@ -212,10 +212,10 @@ export default function PosPage() {
       ]);
       setTables(tablesData);
 
-      // Cập nhật lại map thời gian phục vụ
+      // Cập nhật lại map thời gian phục vụ (chỉ hiển thị khi có món phục vụ)
       const timesMap: Record<string, string> = {};
       activeOrders.forEach(order => {
-        if (order.tableId && order.createdAt) {
+        if (order.tableId && order.createdAt && order.items && order.items.length > 0) {
           timesMap[order.tableId] = order.createdAt;
         }
       });
@@ -377,7 +377,9 @@ export default function PosPage() {
   // Lưu hóa đơn: Tạo mới hoặc cập nhật bill hiện có
   const handleSaveOrder = async () => {
     if (!selectedTable) return;
-    if (currentCartItems.length === 0) {
+    // Nếu chưa có hóa đơn đang mở mà giỏ hàng trống thì báo lỗi.
+    // Nếu có hóa đơn đang mở thì cho phép lưu trống để xóa hết món/giải phóng bàn.
+    if (currentCartItems.length === 0 && !activeOrder) {
       showToast("warning", "Hóa đơn rỗng. Vui lòng chọn ít nhất 1 món.");
       return;
     }
@@ -393,8 +395,15 @@ export default function PosPage() {
       if (activeOrder) {
         // Cập nhật hóa đơn cũ
         const updated = await posApi.updateOrderItems(activeOrder.id, { items: itemsPayload });
-        setActiveOrder(updated);
-        showToast("success", `Cập nhật bill thành công cho ${selectedTable.name}`);
+        if (updated.status === "CANCELLED") {
+          setActiveOrder(null);
+          setCurrentCartItems([]);
+          setSelectedTable(null);
+          showToast("success", `Đã xóa hết món, giải phóng bàn ${selectedTable.name}`);
+        } else {
+          setActiveOrder(updated);
+          showToast("success", `Cập nhật bill thành công cho ${selectedTable.name}`);
+        }
       } else {
         // Tạo hóa đơn mới
         const created = await posApi.createOrder({
@@ -402,13 +411,15 @@ export default function PosPage() {
           items: itemsPayload
         });
         setActiveOrder(created);
-        // Lưu thời điểm bắt đầu phục vụ
-        setTableOrderTimes(prev => ({ ...prev, [selectedTable.id]: created.createdAt }));
+        // Lưu thời điểm bắt đầu phục vụ (chỉ khi có món)
+        if (itemsPayload.length > 0) {
+          setTableOrderTimes(prev => ({ ...prev, [selectedTable.id]: created.createdAt }));
+        }
         showToast("success", `Đã mở bill mới cho ${selectedTable.name}`);
       }
       
       // Refresh dữ liệu bàn để cập nhật màu sắc trạng thái
-      await refreshTables(selectedTable.id);
+      await refreshTables(selectedTable?.id);
     } catch (err) {
       if (err instanceof ApiError) {
         showToast("error", err.message);

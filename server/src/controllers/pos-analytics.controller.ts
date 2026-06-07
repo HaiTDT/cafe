@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { getVietnamDayBounds, getVietnamMonthBounds } from "../lib/date-utils";
 
 export const posAnalyticsController = {
   async getDashboard(req: Request, res: Response) {
@@ -11,22 +12,23 @@ export const posAnalyticsController = {
         return res.status(400).json({ message: "Vui lòng chỉ định chi nhánh báo cáo" });
       }
 
-      // --- Xác định khoảng thời gian lọc ---
+      // --- Xác định khoảng thời gian lọc (Múi giờ Việt Nam UTC+7) ---
       let start: Date;
       let end: Date;
 
       if (startDate && endDate) {
         // Client truyền khoảng thời gian tùy chỉnh
-        start = new Date(startDate as string);
-        start.setHours(0, 0, 0, 0);
-        end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999);
+        start = getVietnamDayBounds(startDate as string).start;
+        end = getVietnamDayBounds(endDate as string).end;
+      } else if (startDate) {
+        const bounds = getVietnamDayBounds(startDate as string);
+        start = bounds.start;
+        end = bounds.end;
       } else {
         // Mặc định: hôm nay
-        start = new Date();
-        start.setHours(0, 0, 0, 0);
-        end = new Date();
-        end.setHours(23, 59, 59, 999);
+        const bounds = getVietnamDayBounds();
+        start = bounds.start;
+        end = bounds.end;
       }
 
       // 1. Doanh thu theo kỳ (chỉ tính hóa đơn PAID)
@@ -132,15 +134,8 @@ export const posAnalyticsController = {
         take: 5
       });
 
-      // 5. Doanh thu tháng hiện tại (luôn cố định theo tháng thực)
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
-      const endOfMonth = new Date();
-      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
-      endOfMonth.setDate(0);
-      endOfMonth.setHours(23, 59, 59, 999);
+      // 5. Doanh thu tháng hiện tại (luôn cố định theo tháng thực - Múi giờ Việt Nam UTC+7)
+      const { start: startOfMonth, end: endOfMonth } = getVietnamMonthBounds();
 
       const monthOrders = await prisma.cafeOrder.findMany({
         where: {

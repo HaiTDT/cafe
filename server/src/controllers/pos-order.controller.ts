@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { CafeOrderStatus, CafeTableStatus, PaymentMethod } from "@prisma/client";
+import { getVietnamDayBounds } from "../lib/date-utils";
 
 export const posOrderController = {
   // Lấy các hóa đơn đang mở (PENDING)
@@ -221,6 +222,28 @@ export const posOrderController = {
           where: { orderId: id }
         });
 
+        if (items.length === 0) {
+          // Nếu xóa hết món trong bill, đưa bàn về EMPTY và CANCELLED hóa đơn
+          const updatedOrder = await tx.cafeOrder.update({
+            where: { id },
+            data: {
+              status: "CANCELLED",
+              totalAmount: 0
+            },
+            include: {
+              items: true,
+              table: true
+            }
+          });
+
+          await tx.cafeTable.update({
+            where: { id: order.tableId },
+            data: { status: "EMPTY" }
+          });
+
+          return updatedOrder;
+        }
+
         // Tạo các items mới
         const updatedOrder = await tx.cafeOrder.update({
           where: { id },
@@ -244,10 +267,6 @@ export const posOrderController = {
             where: { id: order.tableId },
             data: { status: "SERVING" }
           });
-        } else if (items.length === 0) {
-          // Nếu xóa hết món trong bill, đưa bàn về EMPTY và CANCELLED hóa đơn?
-          // Ở đây, thông thường POS cho phép xóa món, nhưng nếu trống bill ta có thể giữ nguyên hoặc cảnh báo.
-          // Để an toàn, nếu bill rỗng thì giữ nguyên tổng tiền = 0.
         }
 
         return updatedOrder;
@@ -413,12 +432,11 @@ export const posOrderController = {
       if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) {
-          where.createdAt.gte = new Date(String(startDate));
+          const { start } = getVietnamDayBounds(String(startDate));
+          where.createdAt.gte = start;
         }
         if (endDate) {
-          // Thêm 23h59m59s để bao phủ cả ngày kết thúc
-          const end = new Date(String(endDate));
-          end.setHours(23, 59, 59, 999);
+          const { end } = getVietnamDayBounds(String(endDate));
           where.createdAt.lte = end;
         }
       }
