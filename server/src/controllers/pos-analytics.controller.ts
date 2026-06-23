@@ -164,7 +164,7 @@ export const posAnalyticsController = {
           tableName: order.table.name,
           totalAmount: order.totalAmount,
           paymentMethod: order.payments[0]?.paymentMethod || "CASH",
-          payTime: order.updatedAt
+          payTime: order.payments[0]?.createdAt || order.updatedAt
         })),
         // backward compat
         todayRevenue: periodRevenue,

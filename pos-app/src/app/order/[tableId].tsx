@@ -71,8 +71,8 @@ export default function OrderScreen() {
       setCategories(catsData);
       setProducts(prodsData);
 
-      // 2. Nếu bàn đang bận, tải hóa đơn hiện tại
-      if (tableStatus !== 'EMPTY') {
+      // 2. Tải hóa đơn hiện tại từ server (không phụ thuộc vào trạng thái bàn cục bộ)
+      try {
         const order = await posApi.getOrderByTable(tableId);
         setActiveOrder(order);
 
@@ -86,11 +86,16 @@ export default function OrderScreen() {
           }));
           setCartItems(items);
         }
-      } else {
-        // Bàn trống -> Khởi tạo giỏ hàng rỗng
-        setActiveOrder(null);
-        setCartItems([]);
-        setActiveTab('menu'); // Tự động chuyển qua tab menu để chọn món
+      } catch (err: any) {
+        if (err instanceof ApiError && err.status === 404) {
+          // Không tìm thấy hóa đơn đang mở -> Xem như bàn trống và tạo giỏ hàng mới
+          setActiveOrder(null);
+          setCartItems([]);
+          setActiveTab('menu'); // Tự động chuyển qua tab menu để chọn món
+        } else {
+          // Lỗi kết nối hoặc lỗi server khác -> Quăng tiếp để luồng catch chính hiển thị Alert
+          throw err;
+        }
       }
     } catch (err: any) {
       console.error('Lỗi load order:', err);

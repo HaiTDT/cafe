@@ -1470,6 +1470,7 @@ export default function PosAdminPage() {
                         <th className="py-3 px-6 font-bold uppercase tracking-wider">Hóa đơn</th>
                         <th className="py-3 px-6 font-bold uppercase tracking-wider">Bàn</th>
                         <th className="py-3 px-6 font-bold uppercase tracking-wider">Thời gian tạo</th>
+                        <th className="py-3 px-6 font-bold uppercase tracking-wider">Giờ thanh toán</th>
                         <th className="py-3 px-6 font-bold uppercase tracking-wider text-center">Trạng thái</th>
                         <th className="py-3 px-6 font-bold uppercase tracking-wider text-right">Tổng tiền</th>
                         <th className="py-3 px-6 font-bold uppercase tracking-wider text-center">Thao tác</th>
@@ -1486,6 +1487,16 @@ export default function PosAdminPage() {
                             <td className="py-4 px-6 text-stone-600">
                               {new Date(order.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}{" - "}
                               {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                            </td>
+                            <td className="py-4 px-6 text-stone-600">
+                              {order.payments && order.payments.length > 0 ? (
+                                <>
+                                  {new Date(order.payments[0].createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}{" - "}
+                                  {new Date(order.payments[0].createdAt).toLocaleDateString("vi-VN")}
+                                </>
+                              ) : (
+                                <span className="text-stone-400 italic">Chưa thanh toán</span>
+                              )}
                             </td>
                             <td className="py-4 px-6 text-center">
                               <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase border ${
@@ -2016,6 +2027,16 @@ export default function PosAdminPage() {
                         : selectedOrder.payments[0].paymentMethod === "BANK_TRANSFER" ? "Chuyển khoản"
                         : selectedOrder.payments[0].paymentMethod === "E_WALLET" ? "Ví điện tử" : "Thẻ ngân hàng"
                       : "Chưa trả"}
+                  </p>
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <p className="text-stone-550 font-semibold">Giờ thanh toán:</p>
+                  <p className="text-stone-850">
+                    {selectedOrder.payments && selectedOrder.payments.length > 0 ? (
+                      new Date(selectedOrder.payments[0].createdAt).toLocaleString("vi-VN")
+                    ) : (
+                      <span className="text-stone-400 italic">Chưa thanh toán</span>
+                    )}
                   </p>
                 </div>
               </div>

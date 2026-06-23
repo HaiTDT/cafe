@@ -9,7 +9,7 @@ posOrderRouter.get("/table/:tableId", authenticatePosJwt, posOrderController.get
 posOrderRouter.post("/", authenticatePosJwt, posOrderController.create);
 posOrderRouter.put("/:id/items", authenticatePosJwt, posOrderController.updateItems);
 posOrderRouter.post("/:id/pay", authenticatePosJwt, posOrderController.pay);
-posOrderRouter.get("/history", authenticatePosJwt, posOrderController.listHistory);
+posOrderRouter.get("/history", authenticatePosJwt, requirePosAdmin, posOrderController.listHistory);
 
 // Chỉ Admin mới được hủy/hoàn tiền hóa đơn
 posOrderRouter.put("/:id/status", authenticatePosJwt, requirePosAdmin, posOrderController.updateStatus);

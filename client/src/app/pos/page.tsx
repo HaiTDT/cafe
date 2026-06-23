@@ -82,20 +82,18 @@ export default function PosPage() {
     }
 
     const initData = async () => {
-      let user = loadedUser;
-      if (!user) {
-        try {
-          const res = await posApi.getMe();
-          user = res.user;
-          setCurrentUser(user);
-          window.localStorage.setItem("pos_user", JSON.stringify(user));
-        } catch (e) {
-          posTokenStore.clear();
-          router.push("/pos/login");
-          return;
-        }
+      try {
+        const res = await posApi.getMe();
+        const user = res.user;
+        setCurrentUser(user);
+        window.localStorage.setItem("pos_user", JSON.stringify(user));
+        await loadBranchesAndCheck(user);
+      } catch (e) {
+        console.error("Auth verify failed:", e);
+        posTokenStore.clear();
+        window.localStorage.removeItem("pos_user");
+        router.push("/pos/login");
       }
-      await loadBranchesAndCheck(user);
     };
 
     initData();
@@ -160,10 +158,17 @@ export default function PosPage() {
     setCurrentCartItems([]);
   };
 
-  // Tự động load dữ liệu khi chi nhánh được chọn hoặc thay đổi
+  // Tự động load dữ liệu khi chi nhánh được chọn hoặc thay đổi & thiết lập polling định kỳ
   useEffect(() => {
     if (selectedBranch) {
       loadAllData();
+
+      // Thiết lập Polling định kỳ mỗi 10 giây để đồng bộ sơ đồ bàn thời gian thực
+      const intervalId = setInterval(() => {
+        refreshTables();
+      }, 10000);
+
+      return () => clearInterval(intervalId);
     }
   }, [selectedBranch]);
 
@@ -240,36 +245,34 @@ export default function PosPage() {
     setError("");
     setActiveMobileTab("menu");
 
-    if (table.status !== "EMPTY") {
-      setActionLoading(true);
-      try {
-        // Gọi API lấy order đang PENDING của bàn này
-        const order = await posApi.getOrderByTable(table.id);
-        setActiveOrder(order);
-        
-        // Chuyển đổi orderItems từ server sang định dạng cart của client
-        if (order && order.items) {
-          const cartItems = order.items.map(item => {
-            const prod = products.find(p => p.id === item.productId);
-            return {
-              productId: item.productId || "",
-              productName: item.productName,
-              unitPrice: Number(item.unitPrice),
-              quantity: item.quantity,
-              notes: item.notes || "",
-              product: prod
-            };
-          });
-          setCurrentCartItems(cartItems);
-        }
-      } catch (err) {
-        console.error("Get table order error:", err);
-        // Nếu không tìm thấy order dù bàn báo đang bận (có thể do sai lệch DB)
-        setActiveOrder(null);
-        setCurrentCartItems([]);
-      } finally {
-        setActionLoading(false);
+    setActionLoading(true);
+    try {
+      // Gọi API lấy order đang PENDING của bàn này
+      const order = await posApi.getOrderByTable(table.id);
+      setActiveOrder(order);
+      
+      // Chuyển đổi orderItems từ server sang định dạng cart của client
+      if (order && order.items) {
+        const cartItems = order.items.map(item => {
+          const prod = products.find(p => p.id === item.productId);
+          return {
+            productId: item.productId || "",
+            productName: item.productName,
+            unitPrice: Number(item.unitPrice),
+            quantity: item.quantity,
+            notes: item.notes || "",
+            product: prod
+          };
+        });
+        setCurrentCartItems(cartItems);
       }
+    } catch (err) {
+      console.error("Get table order error:", err);
+      // Nếu không tìm thấy order (ví dụ: bàn trống trả về 404 hoặc lỗi khác)
+      setActiveOrder(null);
+      setCurrentCartItems([]);
+    } finally {
+      setActionLoading(false);
     }
   };
 

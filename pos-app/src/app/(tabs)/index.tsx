@@ -114,6 +114,13 @@ export default function TablesScreen() {
 
   useEffect(() => {
     loadData();
+
+    // Thiết lập Polling định kỳ 10 giây để đồng bộ sơ đồ bàn thời gian thực
+    const intervalId = setInterval(() => {
+      loadData(false);
+    }, 10000);
+
+    return () => clearInterval(intervalId);
   }, [loadData]);
 
   const onRefresh = () => {
