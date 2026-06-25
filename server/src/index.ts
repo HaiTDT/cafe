@@ -45,7 +45,7 @@ app.use(
         "https://mis-hasaki-client.vercel.app",
         "http://localhost:8081" // Expo Dev Server
       ];
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.startsWith("http://localhost:")) {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".onrender.com") || origin.startsWith("http://localhost:")) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
