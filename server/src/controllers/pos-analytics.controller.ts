@@ -31,14 +31,18 @@ export const posAnalyticsController = {
         end = bounds.end;
       }
 
-      // 1. Doanh thu theo kỳ (chỉ tính hóa đơn PAID)
+      // 1. Doanh thu theo kỳ (chỉ tính hóa đơn PAID được thanh toán trong kỳ)
       const periodOrders = await prisma.cafeOrder.findMany({
         where: {
           status: "PAID",
           branchId: targetBranchId,
-          createdAt: {
-            gte: start,
-            lte: end
+          payments: {
+            some: {
+              createdAt: {
+                gte: start,
+                lte: end
+              }
+            }
           }
         },
         include: {
@@ -84,9 +88,13 @@ export const posAnalyticsController = {
           order: {
             status: "PAID",
             branchId: targetBranchId,
-            createdAt: {
-              gte: start,
-              lte: end
+            payments: {
+              some: {
+                createdAt: {
+                  gte: start,
+                  lte: end
+                }
+              }
             }
           }
         },
@@ -119,9 +127,13 @@ export const posAnalyticsController = {
         where: {
           status: "PAID",
           branchId: targetBranchId,
-          createdAt: {
-            gte: start,
-            lte: end
+          payments: {
+            some: {
+              createdAt: {
+                gte: start,
+                lte: end
+              }
+            }
           }
         },
         include: {
@@ -141,9 +153,13 @@ export const posAnalyticsController = {
         where: {
           status: "PAID",
           branchId: targetBranchId,
-          createdAt: {
-            gte: startOfMonth,
-            lte: endOfMonth
+          payments: {
+            some: {
+              createdAt: {
+                gte: startOfMonth,
+                lte: endOfMonth
+              }
+            }
           }
         },
         select: {
