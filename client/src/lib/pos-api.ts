@@ -141,7 +141,8 @@ export const posTokenStore = {
 
 // --- POS API REQ HELPER ---
 
-export const POS_API_BASE_URL = "https://haulecoffee.onrender.com";
+export const POS_API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://haulecoffee-inff.onrender.com";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;

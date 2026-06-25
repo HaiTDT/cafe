@@ -1,6 +1,6 @@
 import { posTokenStore, storage } from './storage';
 
-export const DEFAULT_API_URL = 'https://haulecoffee.onrender.com';
+export const DEFAULT_API_URL = 'https://haulecoffee-inff.onrender.com';
 
 export class ApiError extends Error {
   status: number;
