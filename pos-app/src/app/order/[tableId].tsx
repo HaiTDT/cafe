@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -45,8 +45,18 @@ export default function OrderScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Cart / Order states
-  const [activeOrder, setActiveOrder] = useState<CafeOrder | null>(null);
+  const [activeOrder, _setActiveOrder] = useState<CafeOrder | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Refs for managing activeOrder and saving queue (avoiding race conditions)
+  const activeOrderRef = useRef<CafeOrder | null>(null);
+  const isSavingRef = useRef(false);
+  const pendingSaveItemsRef = useRef<CartItem[] | null>(null);
+
+  const setActiveOrder = (order: CafeOrder | null) => {
+    _setActiveOrder(order);
+    activeOrderRef.current = order;
+  };
   
   // Checkout modal states
   const [showPayModal, setShowPayModal] = useState(false);
@@ -62,6 +72,13 @@ export default function OrderScreen() {
   // Load menu items & active order details
   const initData = useCallback(async () => {
     setLoading(true);
+    // Clear stale state from previous table IMMEDIATELY to prevent stale data display/saving
+    _setActiveOrder(null);
+    activeOrderRef.current = null;
+    setCartItems([]);
+    isSavingRef.current = false;
+    pendingSaveItemsRef.current = null;
+
     try {
       // 1. Tải danh mục & món nước
       const [catsData, prodsData] = await Promise.all([
@@ -133,44 +150,67 @@ export default function OrderScreen() {
     }
   }, [customerMoney, totalAmount]);
 
-  // Tự động lưu bill (lưu trong nền)
-  const performAutoSave = async (items: CartItem[]) => {
-    if (items.length === 0 && !activeOrder) return;
+  // Tự động lưu bill (lưu trong nền) - sử dụng queue để tránh race condition
+  const performAutoSave = useCallback(async (items: CartItem[]) => {
+    if (items.length === 0 && !activeOrderRef.current) return;
+
+    if (isSavingRef.current) {
+      // Đang có tiến trình lưu khác chạy, xếp hàng danh sách mới nhất
+      pendingSaveItemsRef.current = items;
+      return;
+    }
+
+    isSavingRef.current = true;
+    let itemsToSave = items;
 
     try {
-      const payload = items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        notes: item.notes || undefined,
-      }));
+      while (itemsToSave) {
+        const payload = itemsToSave.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          notes: item.notes || undefined,
+        }));
 
-      if (activeOrder) {
-        // Cập nhật bill
-        const updated = await posApi.updateOrderItems(activeOrder.id, { items: payload });
-        if (updated.status === 'CANCELLED') {
-          setActiveOrder(null);
-          setCartItems([]);
-          setToastMsg('Đã xóa hết món, giải phóng bàn');
+        const currentOrder = activeOrderRef.current;
+
+        if (currentOrder) {
+          // Cập nhật bill
+          const updated = await posApi.updateOrderItems(currentOrder.id, { items: payload });
+          if (updated.status === 'CANCELLED') {
+            setActiveOrder(null);
+            setCartItems([]);
+            setToastMsg('Đã xóa hết món, giải phóng bàn');
+          } else {
+            setActiveOrder(updated);
+            setToastMsg('Đã tự động lưu bill');
+          }
         } else {
-          setActiveOrder(updated);
+          // Tạo bill mới
+          const created = await posApi.createOrder({
+            tableId,
+            items: payload,
+          });
+          setActiveOrder(created);
           setToastMsg('Đã tự động lưu bill');
         }
-      } else {
-        // Tạo bill mới
-        const created = await posApi.createOrder({
-          tableId,
-          items: payload,
-        });
-        setActiveOrder(created);
-        setToastMsg('Đã tự động lưu bill');
+
+        // Kiểm tra xem có yêu cầu lưu mới nào trong lúc đang gọi API không
+        if (pendingSaveItemsRef.current) {
+          itemsToSave = pendingSaveItemsRef.current;
+          pendingSaveItemsRef.current = null;
+        } else {
+          break;
+        }
       }
       setTimeout(() => setToastMsg(''), 1200);
     } catch (err: any) {
       console.error('Lỗi tự động lưu:', err);
       setToastMsg('Lỗi lưu tự động!');
       setTimeout(() => setToastMsg(''), 1500);
+    } finally {
+      isSavingRef.current = false;
     }
-  };
+  }, [tableId]);
 
   // Thêm món vào giỏ hàng
   const handleAddProduct = (product: CafeProduct) => {

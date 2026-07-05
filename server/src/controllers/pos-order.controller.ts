@@ -122,10 +122,23 @@ export const posOrderController = {
 
       // Thực hiện transaction tạo order và cập nhật status bàn
       const result = await prisma.$transaction(async (tx) => {
+        // Khóa dòng bàn để tránh race condition tạo nhiều order cho cùng một bàn
+        const tableInTx = await tx.$queryRaw<any[]>`
+          SELECT status, "branchId" FROM cafe_tables WHERE id = ${tableId} FOR UPDATE
+        `;
+
+        if (!tableInTx || tableInTx.length === 0) {
+          throw new Error("Không tìm thấy bàn");
+        }
+
+        if (tableInTx[0].status !== "EMPTY") {
+          throw new Error("Bàn này đang có khách phục vụ hoặc đang chờ thanh toán. Vui lòng cập nhật hóa đơn hiện có.");
+        }
+
         const order = await tx.cafeOrder.create({
           data: {
             tableId,
-            branchId: table.branchId,
+            branchId: tableInTx[0].branchId,
             status: "PENDING",
             totalAmount,
             createdById: req.posUser?.id || null,
@@ -150,9 +163,12 @@ export const posOrderController = {
       });
 
       return res.status(201).json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create order error:", error);
-      return res.status(500).json({ message: "Lỗi hệ thống khi tạo hóa đơn" });
+      const isAlreadyOccupied = error.message?.includes("đang có khách phục vụ");
+      return res.status(isAlreadyOccupied ? 400 : 500).json({
+        message: error.message || "Lỗi hệ thống khi tạo hóa đơn"
+      });
     }
   },
 
@@ -217,6 +233,11 @@ export const posOrderController = {
 
       // Thực hiện transaction cập nhật hóa đơn
       const result = await prisma.$transaction(async (tx) => {
+        // Khóa dòng hóa đơn (cafeOrder) để tránh race condition từ các request đồng thời
+        await tx.$executeRaw`
+          SELECT id FROM cafe_orders WHERE id = ${id} FOR UPDATE
+        `;
+
         // Xóa tất cả các items cũ của order này
         await tx.cafeOrderItem.deleteMany({
           where: { orderId: id }
