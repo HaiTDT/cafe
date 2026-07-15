@@ -95,6 +95,90 @@ export interface CafeOrder {
   payments?: Payment[];
 }
 
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit: string;
+  costPrice: string | number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductRecipe {
+  id: string;
+  productId: string;
+  ingredientId: string;
+  quantity: number;
+  ingredient?: Ingredient;
+}
+
+export interface BranchStockItem {
+  id: string;
+  itemId: string;
+  name: string;
+  unit: string;
+  type: "ingredient" | "product";
+  costPrice: number;
+  quantity: number;
+  minStock: number;
+  status: "OUT_OF_STOCK" | "LOW_STOCK" | "NORMAL";
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+}
+
+export interface InventoryTransactionItem {
+  id: string;
+  transactionId: string;
+  ingredientId?: string | null;
+  productId?: string | null;
+  quantity: number;
+  unitPrice?: string | number | null;
+  ingredient?: Ingredient | null;
+  product?: CafeProduct | null;
+}
+
+export interface InventoryTransaction {
+  id: string;
+  branchId: string;
+  type: "IMPORT" | "EXPORT" | "TRANSFER_OUT" | "TRANSFER_IN" | "AUDIT_ADJUST" | "SALE_DEDUCTION";
+  referenceId?: string | null;
+  supplierId?: string | null;
+  notes?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  supplier?: Supplier | null;
+  items?: InventoryTransactionItem[];
+}
+
+export interface InventoryAuditItem {
+  id: string;
+  auditId: string;
+  ingredientId?: string | null;
+  productId?: string | null;
+  systemQty: number;
+  actualQty: number;
+  discrepancy: number;
+  ingredient?: Ingredient | null;
+  product?: CafeProduct | null;
+}
+
+export interface InventoryAudit {
+  id: string;
+  branchId: string;
+  notes?: string | null;
+  status: "PENDING" | "ADJUSTED";
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: InventoryAuditItem[];
+}
+
+
 export interface PosDashboardData {
   todayRevenue: number;
   todayOrdersCount: number;
@@ -416,6 +500,115 @@ export const posApi = {
 
   deleteBranch(id: string) {
     return posApiRequest<{ message: string }>(`/api/pos/branches/${id}`, {
+      method: "DELETE"
+    });
+  },
+
+  // Ingredients (Nguyên liệu)
+  getIngredients() {
+    return posApiRequest<Ingredient[]>("/api/pos/inventory/ingredients");
+  },
+  createIngredient(body: Partial<Ingredient>) {
+    return posApiRequest<Ingredient>("/api/pos/inventory/ingredients", {
+      method: "POST",
+      body
+    });
+  },
+  updateIngredient(id: string, body: Partial<Ingredient>) {
+    return posApiRequest<Ingredient>(`/api/pos/inventory/ingredients/${id}`, {
+      method: "PUT",
+      body
+    });
+  },
+  deleteIngredient(id: string) {
+    return posApiRequest<{ message: string }>(`/api/pos/inventory/ingredients/${id}`, {
+      method: "DELETE"
+    });
+  },
+
+  // Recipes (Định lượng)
+  getRecipe(productId: string) {
+    return posApiRequest<ProductRecipe[]>(`/api/pos/inventory/recipes/product/${productId}`);
+  },
+  updateRecipe(productId: string, body: { items: Array<{ ingredientId: string; quantity: number }> }) {
+    return posApiRequest<{ message: string }>(`/api/pos/inventory/recipes/product/${productId}`, {
+      method: "POST",
+      body
+    });
+  },
+
+  // Branch Stock (Tồn kho chi nhánh)
+  getBranchStock(params: { search?: string; lowStockOnly?: boolean } = {}) {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.lowStockOnly) query.set("lowStockOnly", "true");
+    const queryString = query.toString();
+    return posApiRequest<BranchStockItem[]>(`/api/pos/inventory/branch-stock${queryString ? "?" + queryString : ""}`);
+  },
+  updateMinStock(body: { itemId: string; type: "ingredient" | "product"; minStock: number }) {
+    return posApiRequest<any>("/api/pos/inventory/branch-stock/update-min-stock", {
+      method: "PUT",
+      body
+    });
+  },
+
+  // Transactions (Nhập/Xuất kho)
+  getTransactions() {
+    return posApiRequest<InventoryTransaction[]>("/api/pos/inventory/transactions");
+  },
+  createImport(body: { supplierId?: string; notes?: string; items: Array<{ ingredientId?: string; productId?: string; quantity: number; unitPrice: number }> }) {
+    return posApiRequest<InventoryTransaction>("/api/pos/inventory/transactions/import", {
+      method: "POST",
+      body
+    });
+  },
+  createExport(body: { notes?: string; items: Array<{ ingredientId?: string; productId?: string; quantity: number }> }) {
+    return posApiRequest<InventoryTransaction>("/api/pos/inventory/transactions/export", {
+      method: "POST",
+      body
+    });
+  },
+
+  // Audits (Kiểm kho)
+  getAudits() {
+    return posApiRequest<InventoryAudit[]>("/api/pos/inventory/audits");
+  },
+  createAudit(body: { notes?: string }) {
+    return posApiRequest<InventoryAudit>("/api/pos/inventory/audits", {
+      method: "POST",
+      body
+    });
+  },
+  submitAudit(id: string, body: { items: Array<{ ingredientId?: string; productId?: string; actualQty: number }> }) {
+    return posApiRequest<InventoryAudit>(`/api/pos/inventory/audits/${id}/submit`, {
+      method: "PUT",
+      body
+    });
+  },
+  adjustAudit(id: string) {
+    return posApiRequest<InventoryAudit>(`/api/pos/inventory/audits/${id}/adjust`, {
+      method: "POST"
+    });
+  },
+
+  // Suppliers (Nhà cung cấp)
+  getSuppliers() {
+    return posApiRequest<Supplier[]>("/api/pos/inventory/suppliers");
+  },
+  createSupplier(body: Partial<Supplier>) {
+    return posApiRequest<Supplier>("/api/pos/inventory/suppliers", {
+      method: "POST",
+      body
+    });
+  },
+  updateSupplier(id: string, body: Partial<Supplier>) {
+    return posApiRequest<Supplier>(`/api/pos/inventory/suppliers/${id}`, {
+      method: "PUT",
+      body
+    });
+  },
+  deleteSupplier(id: string) {
+    return posApiRequest<{ message: string }>(`/api/pos/inventory/suppliers/${id}`, {
       method: "DELETE"
     });
   }

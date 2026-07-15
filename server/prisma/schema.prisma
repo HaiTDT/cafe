@@ -115,6 +115,12 @@ model Product {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  // Inventory relations
+  recipes          ProductRecipe[]
+  branchStocks     BranchInventory[]
+  transactionItems InventoryTransactionItem[]
+  auditItems       InventoryAuditItem[]
+
   @@index([categoryId])
   @@map("products")
 }
@@ -347,6 +353,172 @@ model Branch {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  // Inventory relations
+  inventories  BranchInventory[]
+  transactions InventoryTransaction[]
+  audits       InventoryAudit[]
+
   @@map("branches")
+}
+
+// --- POS INVENTORY ENUMS ---
+
+enum InventoryTransactionType {
+  IMPORT         // Nhập kho từ nhà cung cấp
+  EXPORT         // Xuất kho (hủy, hỏng, hết hạn...)
+  TRANSFER_OUT   // Điều chuyển đi chi nhánh khác
+  TRANSFER_IN    // Điều chuyển từ chi nhánh khác đến
+  AUDIT_ADJUST   // Điều chỉnh sau kiểm kho
+  SALE_DEDUCTION // Tự động khấu trừ khi bán hàng
+}
+
+enum AuditStatus {
+  PENDING   // Mới tạo phiếu kiểm, chưa cân bằng kho
+  ADJUSTED  // Đã đối chiếu và điều chỉnh số dư kho thực tế
+}
+
+// --- POS INVENTORY MODELS ---
+
+// 1. Nguyên liệu / Vật tư
+model Ingredient {
+  id          String   @id @default(uuid())
+  name        String   @unique                 // Tên nguyên liệu (VD: Cà phê hạt Arabica, Sữa đặc Ngôi sao phương Nam)
+  unit        String                           // Đơn vị tính (g, ml, cái, hộp, thùng)
+  costPrice   Decimal  @db.Decimal(10, 2)      // Giá vốn trung bình nhập kho
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Quan hệ
+  recipes          ProductRecipe[]
+  branchStocks     BranchInventory[]
+  transactionItems InventoryTransactionItem[]
+  auditItems       InventoryAuditItem[]
+
+  @@map("ingredients")
+}
+
+// 2. Tồn kho chi nhánh (Cả nguyên liệu & Sản phẩm bán lẻ)
+model BranchInventory {
+  id           String      @id @default(uuid())
+  branchId     String
+  branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  // Tồn kho có thể gắn với Nguyên liệu HOẶC Sản phẩm bán lẻ trực tiếp
+  ingredientId String?
+  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  quantity     Float       @default(0)         // Số lượng tồn hiện tại (có thể là số thực: 12.5 kg)
+  minStock     Float       @default(0)         // Định mức tồn tối thiểu (tồn kho an toàn) để cảnh báo nhập hàng
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([branchId, ingredientId])
+  @@unique([branchId, productId])
+  @@map("branch_inventories")
+}
+
+// 3. Định lượng công thức pha chế
+model ProductRecipe {
+  id           String     @id @default(uuid())
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantity     Float      // Số lượng nguyên liệu tiêu hao cho 1 đơn vị sản phẩm (VD: 15g cà phê)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([productId, ingredientId])
+  @@map("product_recipes")
+}
+
+// 4. Nhà cung cấp
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+
+  @@map("suppliers")
+}
+
+// 5. Phiếu giao dịch kho (Nhập/Xuất/Điều chuyển/Khấu trừ)
+model InventoryTransaction {
+  id          String                   @id @default(uuid())
+  branchId    String
+  branch      Branch                   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  type        InventoryTransactionType
+  
+  // Liên kết tùy chọn
+  referenceId String?                  // ID hóa đơn bán hàng (nếu trừ bán hàng) hoặc ID phiếu kiểm (nếu là chỉnh kho)
+  supplierId  String?
+  supplier    Supplier?                @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  notes       String?                  // Ghi chú lý do nhập xuất
+  createdById String?                  // Nhân viên tạo phiếu
+  createdAt   DateTime                 @default(now())
+
+  items       InventoryTransactionItem[]
+
+  @@map("inventory_transactions")
+}
+
+// 6. Chi tiết phiếu giao dịch kho
+model InventoryTransactionItem {
+  id            String               @id @default(uuid())
+  transactionId String
+  transaction   InventoryTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  ingredientId  String?
+  ingredient    Ingredient?          @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  productId     String?
+  product       Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  quantity      Float                // Số lượng giao dịch (Dương cho Nhập/Hao hụt bù, Âm cho Xuất/Trừ bán hàng)
+  unitPrice     Decimal?             @db.Decimal(10, 2) // Giá nhập/vốn tại thời điểm đó
+
+  @@map("inventory_transaction_items")
+}
+
+// 7. Phiếu kiểm kê kho
+model InventoryAudit {
+  id          String         @id @default(uuid())
+  branchId    String
+  branch      Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  notes       String?
+  status      AuditStatus    @default(PENDING)
+  createdById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  items       InventoryAuditItem[]
+
+  @@map("inventory_audits")
+}
+
+// 8. Chi tiết kiểm kê kho
+model InventoryAuditItem {
+  id           String         @id @default(uuid())
+  auditId      String
+  audit        InventoryAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  
+  ingredientId String?
+  ingredient   Ingredient?    @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  productId    String?
+  product      Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  systemQty    Float          // Tồn kho trên hệ thống lúc tạo phiếu
+  actualQty    Float          // Số lượng thực tế kiểm đếm được
+  discrepancy  Float          // Chênh lệch (actualQty - systemQty)
+
+  @@map("inventory_audit_items")
 }
 

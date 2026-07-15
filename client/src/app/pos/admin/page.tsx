@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { posApi, posTokenStore, formatPrice } from "../../../lib/pos-api";
 import type { CafeCategory, CafeProduct, CafeTable, CafeOrder, CafeOrderItem, PaymentMethod, CafeOrderStatus } from "../../../lib/pos-api";
 import { ApiError } from "../../../lib/api";
+import InventoryTab from "./InventoryTab";
 
-type TabType = "dashboard" | "menu" | "tables" | "history" | "branches" | "staff";
+type TabType = "dashboard" | "menu" | "tables" | "history" | "branches" | "staff" | "inventory";
 type MenuSubTabType = "products" | "categories";
 
 export default function PosAdminPage() {
@@ -16,6 +17,9 @@ export default function PosAdminPage() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [menuSubTab, setMenuSubTab] = useState<MenuSubTabType>("products");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Inventory Refresh State
+  const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   
   // Branch States
   const [branches, setBranches] = useState<any[]>([]);
@@ -765,7 +769,8 @@ export default function PosAdminPage() {
               { id: "tables", label: "Quản lý Sơ đồ Bàn", icon: "table_restaurant" },
               { id: "history", label: "Lịch sử Hóa đơn", icon: "receipt_long" },
               { id: "branches", label: "Quản lý Chi nhánh", icon: "store" },
-              { id: "staff", label: "Quản lý Nhân viên", icon: "badge" }
+              { id: "staff", label: "Quản lý Nhân viên", icon: "badge" },
+              { id: "inventory", label: "Quản lý Tồn kho", icon: "inventory" }
             ].map(item => (
               <button
                 key={item.id}
@@ -834,7 +839,9 @@ export default function PosAdminPage() {
               {activeTab === "dashboard" ? "Dashboard Doanh thu" :
                activeTab === "menu" ? "Quản lý Thực đơn" :
                activeTab === "tables" ? "Quản lý Sơ đồ Bàn" :
-               activeTab === "branches" ? "Quản lý Chi nhánh" : "Lịch sử Hóa đơn"}
+               activeTab === "branches" ? "Quản lý Chi nhánh" :
+               activeTab === "staff" ? "Quản lý Nhân viên" :
+               activeTab === "inventory" ? "Quản lý Tồn kho" : "Lịch sử Hóa đơn"}
             </h1>
             <p className="text-[9px] md:text-[10px] text-stone-500">Trang quản trị vận hành dành cho Admin</p>
           </div>
@@ -887,7 +894,8 @@ export default function PosAdminPage() {
                 activeTab === "menu" ? loadMenuData :
                 activeTab === "tables" ? loadTablesData :
                 activeTab === "branches" ? loadBranches :
-                activeTab === "staff" ? loadStaffsData : loadHistoryData
+                activeTab === "staff" ? loadStaffsData :
+                activeTab === "inventory" ? () => setInventoryRefreshKey(prev => prev + 1) : loadHistoryData
               }
               disabled={actionLoading}
               className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-xl bg-white border border-stone-200 text-stone-600 transition hover:text-stone-900 hover:border-stone-350 disabled:opacity-50"
@@ -1731,6 +1739,18 @@ export default function PosAdminPage() {
               </div>
             </div>
           )}
+
+          {activeTab === "inventory" && (
+            <InventoryTab
+              selectedBranchId={selectedBranchId}
+              currentUser={currentUser}
+              products={products}
+              categories={categories}
+              loadMenuData={loadMenuData}
+              showToast={showToast}
+              refreshTrigger={inventoryRefreshKey}
+            />
+          )}
         </div>
 
         {/* Bottom Navigation for Mobile Admin */}
@@ -1741,7 +1761,8 @@ export default function PosAdminPage() {
             { id: "tables", label: "Sơ đồ bàn", icon: "table_restaurant" },
             { id: "history", label: "Hóa đơn", icon: "receipt_long" },
             { id: "branches", label: "Chi nhánh", icon: "store" },
-            { id: "staff", label: "Nhân viên", icon: "badge" }
+            { id: "staff", label: "Nhân viên", icon: "badge" },
+            { id: "inventory", label: "Tồn kho", icon: "inventory" }
           ].map(item => (
             <button
               key={item.id}

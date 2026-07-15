@@ -27,6 +27,7 @@ import { posTableRouter } from "./routes/pos-table.routes";
 import { posOrderRouter } from "./routes/pos-order.routes";
 import { posAnalyticsRouter } from "./routes/pos-analytics.routes";
 import { posBranchRouter } from "./routes/pos-branch.routes";
+import { posInventoryRouter } from "./routes/pos-inventory.routes";
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
@@ -89,6 +90,7 @@ app.use("/api/pos/tables", posTableRouter);
 app.use("/api/pos/orders", posOrderRouter);
 app.use("/api/pos/analytics", posAnalyticsRouter);
 app.use("/api/pos/branches", posBranchRouter);
+app.use("/api/pos/inventory", posInventoryRouter);
 
 app.listen(port, () => {
   console.log(`API server listening on http://localhost:${port}`);

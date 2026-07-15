@@ -205,6 +205,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          title: 'Quản Lý Kho',
+          tabBarLabel: 'Kho hàng',
+          tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
+        }}
+      />
     </Tabs>
   );
 }

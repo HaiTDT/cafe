@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { CafeOrderStatus, CafeTableStatus, PaymentMethod } from "@prisma/client";
 import { getVietnamDayBounds } from "../lib/date-utils";
+import { inventoryService } from "../services/inventory.service";
 
 export const posOrderController = {
   // Lấy các hóa đơn đang mở (PENDING)
@@ -357,6 +358,13 @@ export const posOrderController = {
           where: { id: order.tableId },
           data: { status: "EMPTY" }
         });
+
+        // 4. Trừ kho tự động theo định lượng hoặc trừ trực tiếp
+        try {
+          await inventoryService.deductStockForOrder(order.branchId, id, tx);
+        } catch (invErr) {
+          console.error("[Inventory Error] Lỗi tự động trừ kho cho hóa đơn:", invErr);
+        }
 
         return { order: updatedOrder, payment };
       });
